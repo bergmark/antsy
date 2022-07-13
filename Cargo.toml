@@ -1,0 +1,15 @@
+[package]
+name = "antsy"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.58"
+crossterm = "0.24.0"
+derive_more = "0.99.17"
+format_num = "0.1.0"
+serde = "1.0.138"
+strum = { version = "0.24.1", features = ["derive"] }
+tui = "0.18.0"
