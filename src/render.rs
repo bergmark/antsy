@@ -2,6 +2,7 @@ use crate::app::{App, Highlight};
 use crate::bar::Bar;
 use crate::float::Float;
 use crate::upgrade::{GlobalUpgrade, Upgrade};
+use format_num::format_num;
 use strum::*;
 use tui::{
     backend::Backend,
@@ -12,6 +13,12 @@ use tui::{
     Frame,
 };
 
+const UPGRADE_0_WIDTH: u16 = "| x1.3 SPD: DD.DM |".len() as u16;
+const UPGRADE_1_WIDTH: u16 = "| +1: DD.DM |".len() as u16;
+const UPGRADE_2_WIDTH: u16 = "| x2: DD.DM from #NNN |".len() as u16;
+const UPGRADE_3_WIDTH: u16 = "| x3: DD.DM from #NNN |".len() as u16;
+const UPGRADE_4_WIDTH: u16 = "| x4: DD.DM from #NNN |".len() as u16;
+
 pub(crate) fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -21,16 +28,31 @@ pub(crate) fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
     let top = chunks[0];
     let bottom = chunks[1];
 
+    const BORDERS: u16 = 2;
+    const VALUES_WIDTH: u16 = " DD.DM ".len() as u16;
+    const TRANSFERRED_WIDTH: u16 = " +DD.DM / vDD.DM ".len() as u16;
+    const LEVEL_WIDTH: u16 = 18;
+    const SPEED_WIDTH: u16 = 12;
+    const UPGRADES_WIDTH: u16 =
+        UPGRADE_0_WIDTH + UPGRADE_1_WIDTH + UPGRADE_2_WIDTH + UPGRADE_3_WIDTH + UPGRADE_4_WIDTH;
+    let bar_width: u16 = top.width
+        - VALUES_WIDTH
+        - TRANSFERRED_WIDTH
+        - LEVEL_WIDTH
+        - SPEED_WIDTH
+        - UPGRADES_WIDTH
+        - BORDERS * 5;
+
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints(
             [
-                Constraint::Length(20),     // bars
-                Constraint::Length(10),     // values
-                Constraint::Length(20),     // transferred
-                Constraint::Length(18),     // level
-                Constraint::Length(12),     // speed
-                Constraint::Percentage(50), // upgrades
+                Constraint::Length(bar_width),
+                Constraint::Length(VALUES_WIDTH + BORDERS),
+                Constraint::Length(TRANSFERRED_WIDTH + BORDERS),
+                Constraint::Length(LEVEL_WIDTH + BORDERS),
+                Constraint::Length(SPEED_WIDTH + BORDERS),
+                Constraint::Length(UPGRADES_WIDTH + BORDERS),
             ]
             .as_ref(),
         )
@@ -42,6 +64,7 @@ pub(crate) fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
     let level = chunks[3];
     let speed = chunks[4];
     let bar_upgrades = chunks[5];
+    assert_eq!(bar_upgrades.width, 103);
 
     render_bars(f, app, bars);
 
@@ -69,6 +92,7 @@ fn render_border<B: Backend>(f: &mut Frame<B>, chunk: Rect, title: &str) -> Rect
 
 fn render_text<B: Backend>(f: &mut Frame<B>, chunk: Rect, text: &str) {
     let w = Paragraph::new(text)
+        .alignment(Alignment::Center)
         .style(Style::default().fg(Color::White).bg(Color::Black))
         .wrap(Wrap { trim: false });
 
@@ -82,11 +106,16 @@ fn render_transferred<B: Backend>(f: &mut Frame<B>, app: &App, chunk: Rect) {
         if let Some(completion) = bar.recent_completion(app.tick) {
             let gain = completion.gain;
             match completion.transferred {
-                None => render_text(f, chunk, &format!("+{gain:.3}")),
-                Some(transferred) => {
-                    let sig = if gain < 0. { "" } else { "+" };
-                    render_text(f, chunk, &format!("{sig}{gain:.3} / ↓{transferred:.3}"))
-                }
+                None => render_text(f, chunk, &format_num!("+.3s", gain)),
+                Some(transferred) => render_text(
+                    f,
+                    chunk,
+                    &format!(
+                        "{gain} / ↓{transferred}",
+                        gain = format_num!("+.3s", gain),
+                        transferred = format_num!(".3s", transferred)
+                    ),
+                ),
             }
         }
     }
@@ -138,9 +167,10 @@ fn render_speed<B: Backend>(f: &mut Frame<B>, app: &App, chunk: Rect) {
     let chunk = render_border(f, chunk, "Speed");
     let chunks = rect_to_lines(chunk);
     for (_i, (bar, chunk)) in app.bars.iter().zip(chunks.into_iter()).enumerate() {
-        let speed = bar.speed(app.global_upgrades[&GlobalUpgrade::Speed]);
+        let speed = bar.speed_multiplier(app.global_upgrades[&GlobalUpgrade::Speed]);
+        let speed = ((speed.0 * 100.) as usize as f64) / 100.;
         let num = format_num::NumberFormat::new();
-        render_text(f, chunk, &format!("x {}", &num.format(".3", speed)));
+        render_text(f, chunk, &format!("x {}", &num.format(".2", speed)));
     }
 }
 
@@ -158,12 +188,22 @@ fn render_level<B: Backend>(f: &mut Frame<B>, app: &App, chunk: Rect) {
 fn render_bar_upgrades<B: Backend>(f: &mut Frame<B>, app: &App, chunk: Rect) {
     let chunk = render_border(f, chunk, "Upgrades");
     let chunks = rect_to_lines(chunk);
+    assert_eq!(Upgrade::COUNT, 5);
     for (i, (bar, chunk)) in app.bars.iter().zip(chunks.into_iter()).enumerate() {
         let chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints(
                 (0..Upgrade::COUNT)
-                    .map(|_| Constraint::Ratio(1, Upgrade::COUNT as u32))
+                    .map(|i| {
+                        Constraint::Length(match i {
+                            0 => UPGRADE_0_WIDTH,
+                            1 => UPGRADE_1_WIDTH,
+                            2 => UPGRADE_2_WIDTH,
+                            3 => UPGRADE_3_WIDTH,
+                            4 => UPGRADE_4_WIDTH,
+                            _ => unreachable!(),
+                        })
+                    })
                     .collect::<Vec<_>>(),
             )
             .split(chunk);
@@ -263,7 +303,7 @@ fn mk_button(label: &str, highlight: bool, can_afford: bool) -> Paragraph<'stati
         Modifier::empty()
     };
     let text = Span::styled(
-        format!("| {label} |"),
+        format!("  {label}  "),
         Style::default().fg(color).add_modifier(modifier),
     );
     Paragraph::new(text)

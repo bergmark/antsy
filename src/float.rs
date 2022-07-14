@@ -8,7 +8,7 @@ pub struct Float(pub f64);
 
 impl fmt::Display for Float {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", NumberFormat::new().format(".3s", self.0))
+        write!(f, "{}", NumberFormat::new().format(".3s", (self.0 * 100.).floor() / 100.))
     }
 }
 

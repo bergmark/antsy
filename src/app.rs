@@ -45,7 +45,10 @@ impl App {
     }
 
     pub(crate) fn get_global_upgrade(&self, upgrade: GlobalUpgrade) -> Float {
-        self.global_upgrades[&upgrade].into()
+        self.get_global_upgrade_u(upgrade).into()
+    }
+    pub(crate) fn get_global_upgrade_u(&self, upgrade: GlobalUpgrade) -> usize {
+        self.global_upgrades[&upgrade]
     }
 
     fn spawn_bar(&mut self) {
@@ -126,6 +129,12 @@ impl App {
                 if let GlobalUpgrade::ProgressBars = upgrade {
                     self.bars_to_spawn += 2;
                 }
+                if let GlobalUpgrade::Speed = upgrade {
+                    let global_speed_levels = self.get_global_upgrade_u(GlobalUpgrade::Speed);
+                    for bar in &mut self.bars {
+                        bar.adjust_speed_multiplier(global_speed_levels);
+                    }
+                }
             }
         }
     }
@@ -134,8 +143,9 @@ impl App {
         self.tick = now;
 
         if self.bars_to_spawn > 0
-            && (self.last_bar_spawn.is_none()
-                || now - self.last_bar_spawn.unwrap() >= Duration::from_secs(1))
+            && (self.last_bar_spawn.map_or(true, |last_bar_spawn| {
+                now - last_bar_spawn >= Duration::from_secs(1)
+            }))
         {
             self.spawn_bar();
             self.bars_to_spawn -= 1;

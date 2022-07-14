@@ -33,7 +33,7 @@ impl Bar {
             exp: 0,
             level: 1,
             boost_until: None,
-            speed_base: 1.0.into(),
+            speed_base: 0.25.into(),
             gain_exponent: 0,
             level_speed: 1.0.into(),
         }
@@ -54,12 +54,9 @@ impl Bar {
             self.exp -= exp_for_next_level;
             self.level += 1;
 
-            if self.speed(global_speed_levels) >= 10. {
-                self.speed_base *= 0.1;
-                self.gain_exponent += 1;
-            }
-
             self.level_speed += Float(0.01 * (self.level as f64 + 3.));
+
+            self.adjust_speed_multiplier(global_speed_levels);
 
             let extra_dur = Duration::from_secs(1 + global_exp_boost as u64);
             match self.boost_until {
@@ -72,6 +69,13 @@ impl Bar {
                     }
                 }
             }
+        }
+    }
+
+    pub(crate) fn adjust_speed_multiplier(&mut self, global_speed_levels: usize) {
+        if self.speed(global_speed_levels) >= 10. {
+            self.speed_base *= 0.1;
+            self.gain_exponent += 1;
         }
     }
 
@@ -93,9 +97,12 @@ impl Bar {
             * Float(10.0_f64.powf(self.gain_exponent as f64))
     }
 
-    pub(crate) fn speed(&self, global_speed_levels: usize) -> Float {
-        self.speed_base
-            * Float(1.25).pow(self.get_upgrade(Upgrade::Speed))
+    fn speed(&self, global_speed_levels: usize) -> Float {
+        self.speed_base * self.speed_multiplier(global_speed_levels)
+    }
+
+    pub(crate) fn speed_multiplier(&self, global_speed_levels: usize) -> Float {
+        Float(1.25).pow(self.get_upgrade(Upgrade::Speed))
             * Float(1.05).pow(global_speed_levels.into())
             * self.level_speed
     }
@@ -118,9 +125,6 @@ impl Bar {
             1.
         };
         let new = self.progress + self.speed(global_speed_levels) * boost_mult;
-        if self.number == 1 {
-            // log(&format!("progress: {new}"));
-        }
         if new > 100. {
             self.inc_exp(
                 global_exp_gain_levels,
