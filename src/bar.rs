@@ -18,6 +18,7 @@ pub(crate) struct Bar {
     pub(crate) boost_until: Option<Instant>,
     pub(crate) speed_base: Float,
     pub(crate) gain_exponent: usize,
+    pub(crate) level_speed: Float,
 }
 
 impl Bar {
@@ -34,6 +35,7 @@ impl Bar {
             boost_until: None,
             speed_base: 1.0.into(),
             gain_exponent: 0,
+            level_speed: 1.0.into(),
         }
     }
 
@@ -56,6 +58,8 @@ impl Bar {
                 self.speed_base *= 0.1;
                 self.gain_exponent += 1;
             }
+
+            self.level_speed += Float(0.01 * (self.level as f64 + 3.));
 
             let extra_dur = Duration::from_secs(1 + global_exp_boost as u64);
             match self.boost_until {
@@ -93,17 +97,7 @@ impl Bar {
         self.speed_base
             * Float(1.25).pow(self.get_upgrade(Upgrade::Speed))
             * Float(1.05).pow(global_speed_levels.into())
-            * self.level_speed()
-    }
-
-    fn level_speed(&self) -> f64 {
-        let mut level = self.level;
-        let mut speed = 1f64;
-        while level >= 2 {
-            speed *= 1. + 0.01 * ((level + 4) as f64);
-            level -= 1;
-        }
-        speed
+            * self.level_speed
     }
 
     pub(crate) fn upgrade_cost(&self, upgrade: Upgrade) -> Float {

@@ -86,14 +86,15 @@ struct Bar {
     boost_remaining: Duration,
     speed_base: f64,
     gain_exponent: usize,
+    level_speed: f64,
 }
 
 impl Bar {
     fn from_game(b: &crate::bar::Bar, now: Instant) -> Bar {
         Bar {
-            progress: b.progress.0,
-            gathered: b.gathered.0,
-            transfer_ratio: b.transfer_ratio.0,
+            progress: b.progress.into(),
+            gathered: b.gathered.into(),
+            transfer_ratio: b.transfer_ratio.into(),
             upgrades: b
                 .upgrades
                 .iter()
@@ -109,8 +110,9 @@ impl Bar {
                     Duration::from_secs(0)
                 }
             }),
-            speed_base: b.speed_base.0,
+            speed_base: b.speed_base.into(),
             gain_exponent: b.gain_exponent,
+            level_speed: b.level_speed.into(),
         }
     }
 
@@ -131,6 +133,7 @@ impl Bar {
             boost_until: Some(now + self.boost_remaining),
             speed_base: self.speed_base.into(),
             gain_exponent: self.gain_exponent,
+            level_speed: self.level_speed.into(),
         }
     }
 }
