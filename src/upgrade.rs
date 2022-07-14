@@ -2,7 +2,7 @@ use crate::Float;
 use strum::*;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, EnumCount, Hash)]
-pub enum Upgrade {
+pub(crate) enum Upgrade {
     Speed,
     Gain,
     Double,
@@ -11,7 +11,7 @@ pub enum Upgrade {
 }
 
 impl Upgrade {
-    pub fn next(self) -> Upgrade {
+    pub(crate) fn next(self) -> Upgrade {
         use Upgrade::*;
         match self {
             Speed => Gain,
@@ -21,7 +21,7 @@ impl Upgrade {
             Quadruple => Speed,
         }
     }
-    pub fn prev(self) -> Upgrade {
+    pub(crate) fn prev(self) -> Upgrade {
         use Upgrade::*;
         match self {
             Speed => Quadruple,
@@ -31,7 +31,7 @@ impl Upgrade {
             Quadruple => Triple,
         }
     }
-    pub fn base_cost(self) -> Float {
+    pub(crate) fn base_cost(self) -> Float {
         use Upgrade::*;
         match self {
             Speed => 125.,
@@ -42,7 +42,7 @@ impl Upgrade {
         }
         .into()
     }
-    pub fn cost_target(self) -> i64 {
+    pub(crate) fn cost_target(self) -> i64 {
         use Upgrade::*;
         match self {
             Speed => 0,
@@ -52,7 +52,7 @@ impl Upgrade {
             Quadruple => 7,
         }
     }
-    pub fn scaling(self) -> f64 {
+    pub(crate) fn scaling(self) -> f64 {
         use Upgrade::*;
         match self {
             Speed => 5.,
@@ -62,13 +62,13 @@ impl Upgrade {
             Quadruple => 10_000.,
         }
     }
-    pub fn cost(self, level: usize) -> Float {
+    pub(crate) fn cost(self, level: usize) -> Float {
         self.base_cost() * self.scaling().powf(level as f64)
     }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, EnumCount, Hash)]
-pub enum GlobalUpgrade {
+pub(crate) enum GlobalUpgrade {
     Speed,
     ExpBoost,
     ProgressBars,
@@ -77,7 +77,7 @@ pub enum GlobalUpgrade {
 }
 
 impl GlobalUpgrade {
-    pub fn next(self) -> Self {
+    pub(crate) fn next(self) -> Self {
         use GlobalUpgrade::*;
         match self {
             Speed => ExpBoost,
@@ -87,7 +87,7 @@ impl GlobalUpgrade {
             ExpGain => Speed,
         }
     }
-    pub fn prev(self) -> Self {
+    pub(crate) fn prev(self) -> Self {
         use GlobalUpgrade::*;
         match self {
             Speed => ExpGain,
@@ -119,7 +119,7 @@ impl GlobalUpgrade {
         }
         .into()
     }
-    pub fn cost(self, level: usize) -> Float {
+    pub(crate) fn cost(self, level: usize) -> Float {
         self.base_cost() * self.scaling().powf(level as f64)
     }
 }

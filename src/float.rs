@@ -13,10 +13,10 @@ impl fmt::Display for Float {
 }
 
 impl Float {
-    pub fn pow(self, f: Self) -> Self {
+    pub(crate) fn pow(self, f: Self) -> Self {
         self.0.powf(f.0).into()
     }
-    pub fn powf(self, f: f64) -> Self {
+    pub(crate) fn powf(self, f: f64) -> Self {
         self.0.powf(f).into()
     }
 }

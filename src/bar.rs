@@ -1,27 +1,27 @@
+use crate::app::{exp_for_level, App, Completion};
 use crate::float::Float;
 use crate::upgrade::{GlobalUpgrade, Upgrade};
-use crate::{exp_for_level, App, Completion};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use strum::*;
 
 #[derive(Clone)]
-pub struct Bar {
-    pub progress: Float,
-    pub gathered: Float,
-    pub transfer_ratio: Float,
-    pub last_completion: Option<Completion>,
-    pub upgrades: HashMap<Upgrade, usize>,
-    pub number: usize,
-    pub exp: usize,
-    pub level: usize,
-    pub boost_until: Option<Instant>,
-    pub speed_base: Float,
-    pub gain_exponent: usize,
+pub(crate) struct Bar {
+    pub(crate) progress: Float,
+    pub(crate) gathered: Float,
+    pub(crate) transfer_ratio: Float,
+    pub(crate) last_completion: Option<Completion>,
+    pub(crate) upgrades: HashMap<Upgrade, usize>,
+    pub(crate) number: usize,
+    pub(crate) exp: usize,
+    pub(crate) level: usize,
+    pub(crate) boost_until: Option<Instant>,
+    pub(crate) speed_base: Float,
+    pub(crate) gain_exponent: usize,
 }
 
 impl Bar {
-    pub fn new(number: usize) -> Bar {
+    pub(crate) fn new(number: usize) -> Bar {
         Bar {
             progress: 0.0.into(),
             gathered: 0.0.into(),
@@ -71,15 +71,15 @@ impl Bar {
         }
     }
 
-    pub fn is_boosted(&self, now: Instant) -> bool {
+    pub(crate) fn is_boosted(&self, now: Instant) -> bool {
         self.boost_until.map_or(false, |until| until > now)
     }
 
-    pub fn exp_for_next_level(&self) -> usize {
+    pub(crate) fn exp_for_next_level(&self) -> usize {
         exp_for_level(self.level + 1)
     }
 
-    pub fn gain(&self, app: &App) -> Float {
+    pub(crate) fn gain(&self, app: &App) -> Float {
         const GAIN_BASE: Float = Float(1.);
         use Upgrade::*;
         (GAIN_BASE + self.get_upgrade(Gain) + app.get_global_upgrade(GlobalUpgrade::Gain))
@@ -89,7 +89,7 @@ impl Bar {
             * Float(10.0_f64.powf(self.gain_exponent as f64))
     }
 
-    pub fn speed(&self, global_speed_levels: usize) -> Float {
+    pub(crate) fn speed(&self, global_speed_levels: usize) -> Float {
         self.speed_base
             * Float(1.25).pow(self.get_upgrade(Upgrade::Speed))
             * Float(1.05).pow(global_speed_levels.into())
@@ -106,12 +106,12 @@ impl Bar {
         speed
     }
 
-    pub fn upgrade_cost(&self, upgrade: Upgrade) -> Float {
+    pub(crate) fn upgrade_cost(&self, upgrade: Upgrade) -> Float {
         let level = *self.upgrades.get(&upgrade).unwrap();
         upgrade.base_cost() * upgrade.scaling().powf(level as f64)
     }
 
-    pub fn inc(
+    pub(crate) fn inc(
         &mut self,
         global_speed_levels: usize,
         global_exp_gain_levels: usize,
@@ -142,23 +142,23 @@ impl Bar {
         }
     }
 
-    pub fn recent_completion(&self, now: Instant) -> Option<Completion> {
+    pub(crate) fn recent_completion(&self, now: Instant) -> Option<Completion> {
         self.last_completion
             .iter()
             .copied()
             .find(|c| now - c.tick < Duration::from_secs(1))
     }
 
-    pub fn inc_upgrade(&mut self, upgrade: Upgrade) {
+    pub(crate) fn inc_upgrade(&mut self, upgrade: Upgrade) {
         *self
             .upgrades
             .entry(upgrade)
             .or_insert_with(|| panic!("Should have been init'd")) += 1;
     }
-    pub fn get_upgrade(&self, upgrade: Upgrade) -> Float {
+    pub(crate) fn get_upgrade(&self, upgrade: Upgrade) -> Float {
         self.get_upgrade_u(upgrade).into()
     }
-    pub fn get_upgrade_u(&self, upgrade: Upgrade) -> usize {
+    pub(crate) fn get_upgrade_u(&self, upgrade: Upgrade) -> usize {
         self.upgrades[&upgrade]
     }
 }

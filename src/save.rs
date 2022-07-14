@@ -11,7 +11,7 @@ pub(crate) struct App {
 }
 
 impl App {
-    pub(crate) fn from_game(a: &crate::App) -> App {
+    pub(crate) fn from_game(a: &crate::app::App) -> App {
         App {
             bars: a.bars.iter().map(|b| Bar::from_game(b, a.tick)).collect(),
             bars_to_spawn: a.bars_to_spawn,
@@ -24,8 +24,8 @@ impl App {
         }
     }
 
-    pub(crate) fn into_game(self, now: Instant) -> crate::App {
-        crate::App {
+    pub(crate) fn into_game(self, now: Instant) -> crate::app::App {
+        crate::app::App {
             bars: self.bars.into_iter().map(|b| b.into_game(now)).collect(),
             tick: now,
             last_bar_spawn: None,
