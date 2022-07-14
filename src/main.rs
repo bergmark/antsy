@@ -213,7 +213,7 @@ impl App {
         } else {
             let contents = std::fs::read_to_string(&path).unwrap();
             let save: crate::save::App = serde_json::from_str(&contents).unwrap();
-            save.to_game(now)
+            save.into_game(now)
         }
     }
 

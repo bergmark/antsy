@@ -24,9 +24,9 @@ impl App {
         }
     }
 
-    pub(crate) fn to_game(self, now: Instant) -> crate::App {
+    pub(crate) fn into_game(self, now: Instant) -> crate::App {
         crate::App {
-            bars: self.bars.into_iter().map(|b| b.to_game(now)).collect(),
+            bars: self.bars.into_iter().map(|b| b.into_game(now)).collect(),
             tick: now,
             last_bar_spawn: None,
             bars_to_spawn: self.bars_to_spawn,
@@ -35,14 +35,14 @@ impl App {
             global_upgrades: self
                 .global_upgrades
                 .into_iter()
-                .map(|(u, n)| (u.to_game(), n))
+                .map(|(u, n)| (u.into_game(), n))
                 .collect(),
             last_save: None,
         }
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone)]
 enum GlobalUpgrade {
     Speed,
     ExpBoost,
@@ -62,7 +62,7 @@ impl GlobalUpgrade {
             crate::GlobalUpgrade::ExpGain => ExpGain,
         }
     }
-    fn to_game(self) -> crate::GlobalUpgrade {
+    fn into_game(self) -> crate::GlobalUpgrade {
         use GlobalUpgrade::*;
         match self {
             Speed => crate::GlobalUpgrade::Speed,
@@ -114,7 +114,7 @@ impl Bar {
         }
     }
 
-    fn to_game(self, now: Instant) -> crate::Bar {
+    fn into_game(self, now: Instant) -> crate::Bar {
         crate::Bar {
             progress: self.progress.into(),
             gathered: self.gathered.into(),
@@ -123,7 +123,7 @@ impl Bar {
             upgrades: self
                 .upgrades
                 .into_iter()
-                .map(|(u, n)| (u.to_game(), n))
+                .map(|(u, n)| (u.into_game(), n))
                 .collect(),
             number: self.number,
             exp: self.exp,
@@ -135,7 +135,7 @@ impl Bar {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum Upgrade {
     Speed,
     Gain,
@@ -156,7 +156,7 @@ impl Upgrade {
         }
     }
 
-    fn to_game(self) -> crate::Upgrade {
+    fn into_game(self) -> crate::Upgrade {
         use Upgrade::*;
         match self {
             Speed => crate::Upgrade::Speed,
