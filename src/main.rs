@@ -28,6 +28,7 @@ mod bar;
 use bar::Bar;
 mod upgrade;
 use upgrade::{GlobalUpgrade, Upgrade};
+mod save;
 
 pub struct App {
     bars: VecDeque<Bar>,
@@ -37,6 +38,7 @@ pub struct App {
     highlight: Option<Highlight>,
     last_bar_number: usize,
     global_upgrades: HashMap<GlobalUpgrade, usize>,
+    last_save: Option<Instant>,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -60,6 +62,7 @@ impl App {
             highlight: None,
             last_bar_number: 0,
             global_upgrades: GlobalUpgrade::iter().map(|g| (g, 0)).collect(),
+            last_save: None,
         }
     }
 
@@ -108,6 +111,23 @@ impl App {
 
     fn can_afford(&self, row: usize, upgrade: Upgrade) -> bool {
         self.upgrade_price(row, upgrade).is_some()
+    }
+
+    fn highlight_cost_target(&self) -> Option<i64> {
+        match self.highlight {
+            Some(Highlight::Bar { row, upgrade }) => {
+                let target = row as i64 - upgrade.cost_target();
+                Some(target)
+            }
+            Some(Highlight::Global { .. }) => {
+                if self.bars.is_empty() {
+                    None
+                } else {
+                    Some((self.bars.len() - 1) as i64)
+                }
+            }
+            None => None,
+        }
     }
 
     fn purchase_upgrade(&mut self) {
@@ -175,6 +195,31 @@ impl App {
                 }
             }
         }
+
+        match self.last_save {
+            None => self.save(),
+            Some(last_save) => {
+                if self.tick - last_save > Duration::from_secs(30) {
+                    self.save()
+                }
+            }
+        }
+    }
+
+    fn load(now: Instant) -> App {
+        let path = std::path::Path::new("save.json");
+        if !path.exists() {
+            App::new()
+        } else {
+            let contents = std::fs::read_to_string(&path).unwrap();
+            let save: crate::save::App = serde_json::from_str(&contents).unwrap();
+            save.to_game(now)
+        }
+    }
+
+    fn save(&self) {
+        let save = crate::save::App::from_game(self);
+        std::fs::write("save.json", serde_json::to_string(&save).unwrap()).unwrap();
     }
 }
 
@@ -200,7 +245,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // create app and run it
     let tick_rate = Duration::from_millis(40);
-    let app = App::new();
+    let app = App::load(Instant::now());
     let res = run_app(&mut terminal, app, tick_rate);
 
     // restore terminal
@@ -241,6 +286,7 @@ fn run_app<B: Backend>(
             if let Event::Key(key) = event::read()? {
                 match key.code {
                     KeyCode::Char('q') => {
+                        app.save();
                         return Ok(());
                     }
                     KeyCode::Enter | KeyCode::Char(' ') => app.purchase_upgrade(),
@@ -336,21 +382,31 @@ fn mk_gauge(bar: &Bar, color: Color) -> Gauge<'static> {
         .percent(bar.progress.0 as u16)
 }
 
-fn mk_text_line(text: &str) -> Paragraph<'_> {
+fn mk_text_line_fg(fg_color: Color, text: &str) -> Paragraph<'_> {
     Paragraph::new(text)
         .alignment(Alignment::Center)
-        .style(Style::default().fg(Color::White).bg(Color::Black))
+        .style(Style::default().fg(fg_color).bg(Color::Black))
         .wrap(Wrap { trim: true })
 }
 
-fn bar_values<B: Backend>(f: &mut Frame<B>, app: &App, chunk: Rect) {
+fn render_bar_values<B: Backend>(f: &mut Frame<B>, app: &App, chunk: Rect) {
     let chunk = render_border(f, chunk, "Values");
     let chunks = rect_to_lines(chunk);
+    let highlight_cost_target = app.highlight_cost_target();
     for (i, chunk) in chunks.into_iter().enumerate() {
-        if i < app.bars.len() {
-            let bar = &app.bars[i];
-            f.render_widget(mk_text_line(&format!("{}", bar.gathered)), chunk);
+        if i >= app.bars.len() {
+            break;
         }
+
+        let color = if highlight_cost_target.map_or(false, |t| t == i as i64) {
+            Color::Yellow
+        } else {
+            Color::White
+        };
+
+        let bar = &app.bars[i];
+
+        f.render_widget(mk_text_line_fg(color, &format!("{}", bar.gathered)), chunk);
     }
 }
 
@@ -388,14 +444,17 @@ fn rect_to_lines(r: Rect) -> Vec<Rect> {
 fn log(s: &str) {
     use std::fs::*;
     use std::io::*;
-    let mut file = OpenOptions::new()
-        .write(true)
-        .append(true)
-        .open("log.txt")
-        .unwrap();
 
-    if let Err(e) = writeln!(file, "{}", s) {
-        eprintln!("Couldn't write to file: {}", e);
+    if std::path::Path::new("log.txt").exists() {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open("log.txt")
+            .unwrap();
+
+        if let Err(e) = writeln!(file, "{}", s) {
+            eprintln!("Couldn't write to file: {}", e);
+        }
     }
 }
 
@@ -415,7 +474,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
                 Constraint::Length(20),     // bars
                 Constraint::Length(10),     // values
                 Constraint::Length(20),     // transferred
-                Constraint::Length(12),     // level
+                Constraint::Length(18),     // level
                 Constraint::Length(12),     // speed
                 Constraint::Percentage(50), // upgrades
             ]
@@ -431,7 +490,8 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
     let bar_upgrades = chunks[5];
 
     render_bars(f, app, bars);
-    bar_values(f, app, values);
+
+    render_bar_values(f, app, values);
     render_transferred(f, app, transferred);
     render_level(f, app, level);
     render_speed(f, app, speed);
@@ -526,7 +586,7 @@ fn render_speed<B: Backend>(f: &mut Frame<B>, app: &App, chunk: Rect) {
     for (_i, (bar, chunk)) in app.bars.iter().zip(chunks.into_iter()).enumerate() {
         let speed = bar.speed(app.global_upgrades[&GlobalUpgrade::Speed]);
         let num = format_num::NumberFormat::new();
-        render_text(f, chunk, &num.format(".3%", speed));
+        render_text(f, chunk, &format!("x {}", &num.format(".3", speed)));
     }
 }
 
@@ -535,8 +595,8 @@ fn render_level<B: Backend>(f: &mut Frame<B>, app: &App, chunk: Rect) {
     let chunks = rect_to_lines(chunk);
     for (_i, (bar, chunk)) in app.bars.iter().zip(chunks.into_iter()).enumerate() {
         let level = bar.level;
-        let exp = bar.exp;
-        let to_level = bar.exp_for_next_level();
+        let exp = Float::from(bar.exp);
+        let to_level = Float::from(bar.exp_for_next_level());
         render_text(f, chunk, &format!("L{level} {exp}/{to_level}"));
     }
 }

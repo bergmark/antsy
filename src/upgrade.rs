@@ -69,11 +69,11 @@ impl Upgrade {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, EnumCount, Hash)]
 pub enum GlobalUpgrade {
-    Speed,        // 1.05
-    ExpBoost,     // 1
-    ProgressBars, // +2
-    Gain,         // +1
-    ExpGain,      // +1
+    Speed,
+    ExpBoost,
+    ProgressBars,
+    Gain,
+    ExpGain,
 }
 
 impl GlobalUpgrade {

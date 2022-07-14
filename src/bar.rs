@@ -11,11 +11,13 @@ pub struct Bar {
     pub gathered: Float,
     pub transfer_ratio: Float,
     pub last_completion: Option<Completion>,
-    upgrades: HashMap<Upgrade, usize>,
+    pub upgrades: HashMap<Upgrade, usize>,
     pub number: usize,
     pub exp: usize,
     pub level: usize,
-    boost_until: Option<Instant>,
+    pub boost_until: Option<Instant>,
+    pub speed_base: Float,
+    pub gain_exponent: usize,
 }
 
 impl Bar {
@@ -30,15 +32,30 @@ impl Bar {
             exp: 0,
             level: 1,
             boost_until: None,
+            speed_base: 1.0.into(),
+            gain_exponent: 0,
         }
     }
 
-    fn inc_exp(&mut self, global_exp_gain_levels: usize, global_exp_boost: usize, now: Instant) {
-        self.exp += 1 + global_exp_gain_levels;
+    fn inc_exp(
+        &mut self,
+        global_exp_gain_levels: usize,
+        global_exp_boost: usize,
+        global_speed_levels: usize,
+        now: Instant,
+    ) {
+        self.exp += (1 + global_exp_gain_levels) * 10usize.pow(self.gain_exponent as u32);
         let exp_for_next_level = self.exp_for_next_level();
+
+        // Level up
         if self.exp >= exp_for_next_level {
             self.exp -= exp_for_next_level;
             self.level += 1;
+
+            if self.speed(global_speed_levels) >= 10. {
+                self.speed_base *= 0.1;
+                self.gain_exponent += 1;
+            }
 
             let extra_dur = Duration::from_secs(1 + global_exp_boost as u64);
             match self.boost_until {
@@ -69,11 +86,11 @@ impl Bar {
             * Float(2.).pow(self.get_upgrade(Double))
             * Float(3.).pow(self.get_upgrade(Triple))
             * Float(4.).pow(self.get_upgrade(Quadruple))
+            * Float(10.0_f64.powf(self.gain_exponent as f64))
     }
 
     pub fn speed(&self, global_speed_levels: usize) -> Float {
-        const SPEED_BASE: Float = Float(1.);
-        SPEED_BASE
+        self.speed_base
             * Float(1.25).pow(self.get_upgrade(Upgrade::Speed))
             * Float(1.05).pow(global_speed_levels.into())
             * self.level_speed()
@@ -111,7 +128,12 @@ impl Bar {
             // log(&format!("progress: {new}"));
         }
         if new > 100. {
-            self.inc_exp(global_exp_gain_levels, global_exp_boost, now);
+            self.inc_exp(
+                global_exp_gain_levels,
+                global_exp_boost,
+                global_speed_levels,
+                now,
+            );
             self.progress = Float(100.) - self.progress;
             true
         } else {
