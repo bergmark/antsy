@@ -22,7 +22,7 @@ pub(crate) struct Bar {
 }
 
 impl Bar {
-    pub(crate) fn new(number: usize) -> Bar {
+    pub(crate) fn new(number: usize, speed_base: f64) -> Bar {
         Bar {
             progress: 0.0.into(),
             gathered: 0.0.into(),
@@ -33,7 +33,9 @@ impl Bar {
             exp: 0,
             level: 1,
             boost_until: None,
-            speed_base: 0.25.into(),
+            speed_base: speed_base.into(),
+            /// Slow down the progress bars. When progress finishes,
+            /// exp and gains need to be incremented accordingly.
             gain_exponent: 0,
             level_speed: 1.0.into(),
         }
@@ -73,8 +75,7 @@ impl Bar {
     }
 
     pub(crate) fn adjust_speed_multiplier(&mut self, global_speed_levels: usize) {
-        if self.speed(global_speed_levels) >= 10. {
-            self.speed_base *= 0.1;
+        if self.speed_multiplier(global_speed_levels) >= 10. {
             self.gain_exponent += 1;
         }
     }
@@ -105,6 +106,7 @@ impl Bar {
         Float(1.25).pow(self.get_upgrade(Upgrade::Speed))
             * Float(1.05).pow(global_speed_levels.into())
             * self.level_speed
+            * Float(10.0_f64).pow(-Float::from(self.gain_exponent))
     }
 
     pub(crate) fn upgrade_cost(&self, upgrade: Upgrade) -> Float {
@@ -147,15 +149,20 @@ impl Bar {
             .find(|c| now - c.tick < Duration::from_secs(1))
     }
 
-    pub(crate) fn inc_upgrade(&mut self, upgrade: Upgrade) {
+    pub(crate) fn inc_upgrade(&mut self, upgrade: Upgrade, global_speed_levels: usize) {
         *self
             .upgrades
             .entry(upgrade)
             .or_insert_with(|| panic!("Should have been init'd")) += 1;
+        if let Upgrade::Speed = upgrade {
+            self.adjust_speed_multiplier(global_speed_levels);
+        }
     }
+
     pub(crate) fn get_upgrade(&self, upgrade: Upgrade) -> Float {
         self.get_upgrade_u(upgrade).into()
     }
+
     pub(crate) fn get_upgrade_u(&self, upgrade: Upgrade) -> usize {
         self.upgrades[&upgrade]
     }

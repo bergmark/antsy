@@ -6,6 +6,7 @@ use strum::*;
 
 use crate::bar::Bar;
 use crate::float::Float;
+use crate::opts::Opts;
 use crate::upgrade::{GlobalUpgrade, Upgrade};
 
 pub(crate) struct App {
@@ -17,6 +18,7 @@ pub(crate) struct App {
     pub(crate) last_bar_number: usize,
     pub(crate) global_upgrades: HashMap<GlobalUpgrade, usize>,
     pub(crate) last_save: Option<Instant>,
+    pub(crate) opts: Opts,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -31,7 +33,33 @@ struct UpgradeCost {
 }
 
 impl App {
-    fn new() -> App {
+    pub(crate) fn load(opts: Opts, now: Instant) -> App {
+        let mut app = if !opts.save_file.exists() {
+            App::new(opts)
+        } else {
+            let contents = std::fs::read_to_string(&opts.save_file).unwrap();
+            let save: crate::save::App = serde_json::from_str(&contents).unwrap();
+            save.into_game(opts, now)
+        };
+
+        let global_speed_levels = app.get_global_upgrade_u(GlobalUpgrade::Speed);
+        for bar in &mut app.bars {
+            bar.adjust_speed_multiplier(global_speed_levels);
+        }
+
+        app
+    }
+
+    pub(crate) fn save(&self) {
+        let save = crate::save::App::from_game(self);
+        std::fs::write(
+            &self.opts.save_file,
+            serde_json::to_string_pretty(&save).unwrap(),
+        )
+        .unwrap();
+    }
+
+    fn new(opts: Opts) -> App {
         App {
             bars: VecDeque::new(),
             tick: Instant::now(),
@@ -41,6 +69,7 @@ impl App {
             last_bar_number: 0,
             global_upgrades: GlobalUpgrade::iter().map(|g| (g, 0)).collect(),
             last_save: None,
+            opts,
         }
     }
 
@@ -53,7 +82,7 @@ impl App {
 
     fn spawn_bar(&mut self) {
         self.last_bar_number += 1;
-        self.bars.push_front(Bar::new(self.last_bar_number));
+        self.bars.push_front(Bar::new(self.last_bar_number, self.opts.speed_base));
         if let Some(Highlight::Bar { row, upgrade: _ }) = &mut self.highlight {
             *row += 1;
         }
@@ -114,7 +143,8 @@ impl App {
     pub(crate) fn purchase_upgrade(&mut self) {
         if let Some(Highlight::Bar { upgrade, row }) = self.highlight {
             if let Some(upgrade_cost) = self.upgrade_price(row, upgrade) {
-                self.bars[row].inc_upgrade(upgrade);
+                let global_speed_levels = self.get_global_upgrade_u(GlobalUpgrade::Speed);
+                self.bars[row].inc_upgrade(upgrade, global_speed_levels);
                 self.bars[upgrade_cost.target].gathered -= upgrade_cost.cost;
             }
         }
@@ -192,22 +222,6 @@ impl App {
                 }
             }
         }
-    }
-
-    pub(crate) fn load(now: Instant) -> App {
-        let path = std::path::Path::new("save.json");
-        if !path.exists() {
-            App::new()
-        } else {
-            let contents = std::fs::read_to_string(&path).unwrap();
-            let save: crate::save::App = serde_json::from_str(&contents).unwrap();
-            save.into_game(now)
-        }
-    }
-
-    pub(crate) fn save(&self) {
-        let save = crate::save::App::from_game(self);
-        std::fs::write("save.json", serde_json::to_string(&save).unwrap()).unwrap();
     }
 }
 

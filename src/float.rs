@@ -3,7 +3,7 @@ use std::cmp;
 use std::fmt;
 use std::ops::Mul;
 
-#[derive(Copy, Clone, PartialEq, PartialOrd, Add, AddAssign, Sub, SubAssign, MulAssign)]
+#[derive(Copy, Clone, PartialEq, PartialOrd, Add, AddAssign, Sub, SubAssign, MulAssign, Debug, Neg)]
 pub struct Float(pub f64);
 
 impl fmt::Display for Float {

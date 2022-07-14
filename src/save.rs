@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
+use crate::opts::Opts;
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct App {
@@ -24,7 +25,7 @@ impl App {
         }
     }
 
-    pub(crate) fn into_game(self, now: Instant) -> crate::app::App {
+    pub(crate) fn into_game(self, opts: Opts, now: Instant) -> crate::app::App {
         crate::app::App {
             bars: self.bars.into_iter().map(|b| b.into_game(now)).collect(),
             tick: now,
@@ -38,6 +39,7 @@ impl App {
                 .map(|(u, n)| (u.into_game(), n))
                 .collect(),
             last_save: None,
+            opts,
         }
     }
 }

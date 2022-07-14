@@ -1,0 +1,365 @@
+{
+  "bars": [
+    {
+      "progress": 61.521206646890704,
+      "gathered": 18808.37410023952,
+      "transfer_ratio": 0.01,
+      "upgrades": {
+        "Double": 0,
+        "Speed": 4,
+        "Triple": 0,
+        "Gain": 13,
+        "Quadruple": 0
+      },
+      "number": 16,
+      "exp": 28587,
+      "level": 26,
+      "boost_remaining": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "speed_base": 10.0,
+      "gain_exponent": 1,
+      "level_speed": 5.250000000000002
+    },
+    {
+      "progress": 97.55996382450215,
+      "gathered": 67133.44477402618,
+      "transfer_ratio": 0.01,
+      "upgrades": {
+        "Triple": 0,
+        "Gain": 15,
+        "Double": 1,
+        "Speed": 4,
+        "Quadruple": 0
+      },
+      "number": 15,
+      "exp": 18295,
+      "level": 26,
+      "boost_remaining": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "speed_base": 10.0,
+      "gain_exponent": 1,
+      "level_speed": 5.250000000000002
+    },
+    {
+      "progress": 8.304191714750942,
+      "gathered": 137271.14736132958,
+      "transfer_ratio": 0.01,
+      "upgrades": {
+        "Gain": 16,
+        "Speed": 5,
+        "Double": 2,
+        "Quadruple": 0,
+        "Triple": 0
+      },
+      "number": 14,
+      "exp": 11919,
+      "level": 27,
+      "boost_remaining": {
+        "secs": 21,
+        "nanos": 200692381
+      },
+      "speed_base": 10.0,
+      "gain_exponent": 1,
+      "level_speed": 5.550000000000002
+    },
+    {
+      "progress": 66.04576240827885,
+      "gathered": 232510.38184989896,
+      "transfer_ratio": 0.01,
+      "upgrades": {
+        "Triple": 0,
+        "Double": 2,
+        "Speed": 5,
+        "Gain": 17,
+        "Quadruple": 0
+      },
+      "number": 13,
+      "exp": 19629,
+      "level": 27,
+      "boost_remaining": {
+        "secs": 10,
+        "nanos": 365821437
+      },
+      "speed_base": 10.0,
+      "gain_exponent": 1,
+      "level_speed": 5.550000000000002
+    },
+    {
+      "progress": 63.70856694684442,
+      "gathered": 434218.644547824,
+      "transfer_ratio": 0.01,
+      "upgrades": {
+        "Speed": 6,
+        "Quadruple": 0,
+        "Triple": 1,
+        "Gain": 18,
+        "Double": 2
+      },
+      "number": 12,
+      "exp": 2738,
+      "level": 28,
+      "boost_remaining": {
+        "secs": 34,
+        "nanos": 350820407
+      },
+      "speed_base": 10.0,
+      "gain_exponent": 1,
+      "level_speed": 5.860000000000001
+    },
+    {
+      "progress": 85.250641302874,
+      "gathered": 1181829.3180381116,
+      "transfer_ratio": 0.01,
+      "upgrades": {
+        "Speed": 6,
+        "Double": 2,
+        "Quadruple": 0,
+        "Triple": 1,
+        "Gain": 19
+      },
+      "number": 11,
+      "exp": 32899,
+      "level": 27,
+      "boost_remaining": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "speed_base": 10.0,
+      "gain_exponent": 1,
+      "level_speed": 5.550000000000002
+    },
+    {
+      "progress": 70.53042161643515,
+      "gathered": 1075600.2675581118,
+      "transfer_ratio": 0.01,
+      "upgrades": {
+        "Gain": 19,
+        "Quadruple": 0,
+        "Speed": 6,
+        "Double": 2,
+        "Triple": 1
+      },
+      "number": 10,
+      "exp": 76236,
+      "level": 28,
+      "boost_remaining": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "speed_base": 10.0,
+      "gain_exponent": 1,
+      "level_speed": 5.860000000000001
+    },
+    {
+      "progress": 97.81912030922636,
+      "gathered": 1863129.3494272921,
+      "transfer_ratio": 0.01,
+      "upgrades": {
+        "Quadruple": 0,
+        "Double": 2,
+        "Gain": 20,
+        "Speed": 6,
+        "Triple": 1
+      },
+      "number": 9,
+      "exp": 49639,
+      "level": 27,
+      "boost_remaining": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "speed_base": 10.0,
+      "gain_exponent": 1,
+      "level_speed": 5.550000000000002
+    },
+    {
+      "progress": 65.8740815280932,
+      "gathered": 1286008.6518423485,
+      "transfer_ratio": 0.01,
+      "upgrades": {
+        "Quadruple": 0,
+        "Speed": 6,
+        "Double": 2,
+        "Gain": 20,
+        "Triple": 1
+      },
+      "number": 8,
+      "exp": 58852,
+      "level": 28,
+      "boost_remaining": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "speed_base": 10.0,
+      "gain_exponent": 1,
+      "level_speed": 5.860000000000001
+    },
+    {
+      "progress": 2.893996636180333,
+      "gathered": 3315259.264334185,
+      "transfer_ratio": 0.01,
+      "upgrades": {
+        "Gain": 21,
+        "Triple": 1,
+        "Quadruple": 1,
+        "Double": 3,
+        "Speed": 7
+      },
+      "number": 7,
+      "exp": 13470,
+      "level": 28,
+      "boost_remaining": {
+        "secs": 27,
+        "nanos": 925769529
+      },
+      "speed_base": 10.0,
+      "gain_exponent": 1,
+      "level_speed": 5.860000000000001
+    },
+    {
+      "progress": 6.5284044958987835,
+      "gathered": 8397563.323984664,
+      "transfer_ratio": 0.01,
+      "upgrades": {
+        "Double": 3,
+        "Speed": 7,
+        "Quadruple": 1,
+        "Gain": 21,
+        "Triple": 1
+      },
+      "number": 6,
+      "exp": 66088,
+      "level": 28,
+      "boost_remaining": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "speed_base": 10.0,
+      "gain_exponent": 1,
+      "level_speed": 5.860000000000001
+    },
+    {
+      "progress": 65.0112490038926,
+      "gathered": 6531434.116581494,
+      "transfer_ratio": 0.01,
+      "upgrades": {
+        "Double": 3,
+        "Triple": 1,
+        "Gain": 22,
+        "Quadruple": 1,
+        "Speed": 8
+      },
+      "number": 5,
+      "exp": 23436,
+      "level": 29,
+      "boost_remaining": {
+        "secs": 21,
+        "nanos": 490800306
+      },
+      "speed_base": 10.0,
+      "gain_exponent": 1,
+      "level_speed": 6.1800000000000015
+    },
+    {
+      "progress": 90.72963022064526,
+      "gathered": 14745979.08921555,
+      "transfer_ratio": 0.01,
+      "upgrades": {
+        "Speed": 8,
+        "Quadruple": 1,
+        "Gain": 23,
+        "Double": 3,
+        "Triple": 1
+      },
+      "number": 4,
+      "exp": 82377,
+      "level": 28,
+      "boost_remaining": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "speed_base": 10.0,
+      "gain_exponent": 1,
+      "level_speed": 5.860000000000001
+    },
+    {
+      "progress": 88.06427711529336,
+      "gathered": 16353313.313737212,
+      "transfer_ratio": 0.01,
+      "upgrades": {
+        "Gain": 23,
+        "Double": 3,
+        "Triple": 1,
+        "Speed": 8,
+        "Quadruple": 1
+      },
+      "number": 3,
+      "exp": 73244,
+      "level": 28,
+      "boost_remaining": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "speed_base": 10.0,
+      "gain_exponent": 1,
+      "level_speed": 5.860000000000001
+    },
+    {
+      "progress": 99.85309925003894,
+      "gathered": 23217412.104464393,
+      "transfer_ratio": 0.01,
+      "upgrades": {
+        "Quadruple": 1,
+        "Triple": 2,
+        "Gain": 23,
+        "Speed": 8,
+        "Double": 3
+      },
+      "number": 2,
+      "exp": 73522,
+      "level": 28,
+      "boost_remaining": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "speed_base": 10.0,
+      "gain_exponent": 1,
+      "level_speed": 5.860000000000001
+    },
+    {
+      "progress": 9.825369577737789,
+      "gathered": 96387763.90770023,
+      "transfer_ratio": 0.01,
+      "upgrades": {
+        "Gain": 27,
+        "Double": 3,
+        "Quadruple": 1,
+        "Triple": 2,
+        "Speed": 10
+      },
+      "number": 1,
+      "exp": 114355,
+      "level": 29,
+      "boost_remaining": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "speed_base": 10.0,
+      "gain_exponent": 2,
+      "level_speed": 6.1800000000000015
+    }
+  ],
+  "bars_to_spawn": 0,
+  "last_bar_number": 16,
+  "global_upgrades": {
+    "Speed": 13,
+    "Gain": 5,
+    "ProgressBars": 6,
+    "ExpBoost": 35,
+    "ExpGain": 6
+  }
+}

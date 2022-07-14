@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate derive_more;
 
+use structopt::StructOpt;
 use crossterm::{
     self,
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
@@ -22,13 +23,19 @@ mod float;
 mod render;
 mod save;
 mod upgrade;
+mod opts;
 
 use app::{App, Highlight};
+use opts::Opts;
 use bar::Bar;
 use float::Float;
 use upgrade::{GlobalUpgrade, Upgrade};
 
 fn main() -> Result<(), Box<dyn Error>> {
+
+    let opts = Opts::from_args();
+    let app = App::load(opts, Instant::now());
+
     // setup terminal
     terminal::enable_raw_mode()?;
     log("\nStarting");
@@ -39,7 +46,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // create app and run it
     let tick_rate = Duration::from_millis(40);
-    let app = App::load(Instant::now());
     let res = run_app(&mut terminal, app, tick_rate);
 
     // restore terminal
