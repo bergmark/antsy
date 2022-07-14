@@ -1,5 +1,6 @@
-use crate::app::{App, Highlight};
+use crate::app::App;
 use crate::bar::Bar;
+use crate::controls::Highlight;
 use crate::float::Float;
 use crate::upgrade::{GlobalUpgrade, Upgrade};
 use format_num::format_num;
@@ -208,7 +209,7 @@ fn render_bar_upgrades<B: Backend>(f: &mut Frame<B>, app: &App, chunk: Rect) {
             )
             .split(chunk);
         for (upgrade, chunk) in Upgrade::iter().zip(chunks.into_iter()) {
-            let highlight = match app.highlight {
+            let highlight = match app.ui_state.highlight {
                 None | Some(Highlight::Global { .. }) => false,
                 Some(Highlight::Bar {
                     row: highlight_row,
@@ -238,7 +239,7 @@ fn render_global_upgrades<B: Backend>(f: &mut Frame<B>, app: &App, chunk: Rect) 
         .split(chunk);
 
     for (upgrade, chunk) in GlobalUpgrade::iter().zip(chunks.into_iter()) {
-        let highlight = match app.highlight {
+        let highlight = match app.ui_state.highlight {
             None | Some(Highlight::Bar { .. }) => false,
             Some(Highlight::Global {
                 upgrade: highlight_upgrade,

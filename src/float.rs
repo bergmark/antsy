@@ -3,12 +3,18 @@ use std::cmp;
 use std::fmt;
 use std::ops::Mul;
 
-#[derive(Copy, Clone, PartialEq, PartialOrd, Add, AddAssign, Sub, SubAssign, MulAssign, Debug, Neg)]
+#[derive(
+    Copy, Clone, PartialEq, PartialOrd, Add, AddAssign, Sub, SubAssign, MulAssign, Debug, Neg,
+)]
 pub struct Float(pub f64);
 
 impl fmt::Display for Float {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", NumberFormat::new().format(".3s", (self.0 * 100.).floor() / 100.))
+        write!(
+            f,
+            "{}",
+            NumberFormat::new().format(".3s", (self.0 * 100.).floor() / 100.)
+        )
     }
 }
 

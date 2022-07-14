@@ -5,6 +5,7 @@ use std::{
 use strum::*;
 
 use crate::bar::Bar;
+use crate::controls::{Highlight, UiState};
 use crate::float::Float;
 use crate::opts::Opts;
 use crate::upgrade::{GlobalUpgrade, Upgrade};
@@ -14,17 +15,11 @@ pub(crate) struct App {
     pub(crate) tick: Instant,
     pub(crate) last_bar_spawn: Option<Instant>,
     pub(crate) bars_to_spawn: usize,
-    pub(crate) highlight: Option<Highlight>,
     pub(crate) last_bar_number: usize,
     pub(crate) global_upgrades: HashMap<GlobalUpgrade, usize>,
     pub(crate) last_save: Option<Instant>,
     pub(crate) opts: Opts,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub(crate) enum Highlight {
-    Bar { upgrade: Upgrade, row: usize },
-    Global { upgrade: GlobalUpgrade },
+    pub(crate) ui_state: UiState,
 }
 
 struct UpgradeCost {
@@ -65,7 +60,7 @@ impl App {
             tick: Instant::now(),
             last_bar_spawn: None,
             bars_to_spawn: 4,
-            highlight: None,
+            ui_state: UiState::new(),
             last_bar_number: 0,
             global_upgrades: GlobalUpgrade::iter().map(|g| (g, 0)).collect(),
             last_save: None,
@@ -82,8 +77,9 @@ impl App {
 
     fn spawn_bar(&mut self) {
         self.last_bar_number += 1;
-        self.bars.push_front(Bar::new(self.last_bar_number, self.opts.speed_base));
-        if let Some(Highlight::Bar { row, upgrade: _ }) = &mut self.highlight {
+        self.bars
+            .push_front(Bar::new(self.last_bar_number, self.opts.speed_base));
+        if let Some(Highlight::Bar { row, upgrade: _ }) = &mut self.ui_state.highlight {
             *row += 1;
         }
     }
@@ -124,7 +120,7 @@ impl App {
     }
 
     pub(crate) fn highlight_cost_target(&self) -> Option<i64> {
-        match self.highlight {
+        match self.ui_state.highlight {
             Some(Highlight::Bar { row, upgrade }) => {
                 let target = row as i64 - upgrade.cost_target();
                 Some(target)
@@ -141,14 +137,14 @@ impl App {
     }
 
     pub(crate) fn purchase_upgrade(&mut self) {
-        if let Some(Highlight::Bar { upgrade, row }) = self.highlight {
+        if let Some(Highlight::Bar { upgrade, row }) = self.ui_state.highlight {
             if let Some(upgrade_cost) = self.upgrade_price(row, upgrade) {
                 let global_speed_levels = self.get_global_upgrade_u(GlobalUpgrade::Speed);
                 self.bars[row].inc_upgrade(upgrade, global_speed_levels);
                 self.bars[upgrade_cost.target].gathered -= upgrade_cost.cost;
             }
         }
-        if let Some(Highlight::Global { upgrade }) = self.highlight {
+        if let Some(Highlight::Global { upgrade }) = self.ui_state.highlight {
             if let Some(upgrade_cost) = self.global_upgrade_price(upgrade) {
                 *self
                     .global_upgrades

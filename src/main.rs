@@ -1,10 +1,9 @@
 #[macro_use]
 extern crate derive_more;
 
-use structopt::StructOpt;
 use crossterm::{
     self,
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event},
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use std::{
@@ -12,6 +11,7 @@ use std::{
     io,
     time::{Duration, Instant},
 };
+use structopt::StructOpt;
 use tui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
@@ -19,20 +19,21 @@ use tui::{
 
 mod app;
 mod bar;
+mod controls;
 mod float;
+mod opts;
 mod render;
 mod save;
 mod upgrade;
-mod opts;
 
-use app::{App, Highlight};
-use opts::Opts;
+use app::App;
 use bar::Bar;
+use controls::Action;
 use float::Float;
+use opts::Opts;
 use upgrade::{GlobalUpgrade, Upgrade};
 
 fn main() -> Result<(), Box<dyn Error>> {
-
     let opts = Opts::from_args();
     let app = App::load(opts, Instant::now());
 
@@ -64,14 +65,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-#[derive(Copy, Clone, Debug)]
-enum Dir {
-    Down,
-    Left,
-    Right,
-    Up,
-}
-
 fn run_app<B: Backend>(
     terminal: &mut Terminal<B>,
     mut app: App,
@@ -84,18 +77,13 @@ fn run_app<B: Backend>(
             .unwrap_or_else(|| Duration::from_secs(0));
         if event::poll(timeout)? {
             if let Event::Key(key) = event::read()? {
-                match key.code {
-                    KeyCode::Char('q') => {
+                match app.ui_state.handle_keypress(key, app.bars.len()) {
+                    Action::PurchaseUpgrade => app.purchase_upgrade(),
+                    Action::Quit => {
                         app.save();
                         return Ok(());
                     }
-                    KeyCode::Enter | KeyCode::Char(' ') => app.purchase_upgrade(),
-                    KeyCode::Tab => change_highlight_pane(&mut app),
-                    KeyCode::Down => move_highlight(&mut app, Dir::Down),
-                    KeyCode::Up => move_highlight(&mut app, Dir::Up),
-                    KeyCode::Right => move_highlight(&mut app, Dir::Right),
-                    KeyCode::Left => move_highlight(&mut app, Dir::Left),
-                    _ => {}
+                    Action::Noop => (),
                 }
             }
         }
@@ -106,71 +94,6 @@ fn run_app<B: Backend>(
             terminal.draw(|f| render::ui(f, &app))?;
         }
     }
-}
-
-fn change_highlight_pane(app: &mut App) {
-    match app.highlight {
-        None => move_highlight(app, Dir::Down),
-        Some(Highlight::Global { .. }) => {
-            app.highlight = Some(Highlight::Bar {
-                upgrade: Upgrade::Speed,
-                row: 0,
-            })
-        }
-        Some(Highlight::Bar { .. }) => {
-            app.highlight = Some(Highlight::Global {
-                upgrade: GlobalUpgrade::Speed,
-            })
-        }
-    }
-}
-
-fn move_highlight(app: &mut App, dir: Dir) {
-    if app.bars.is_empty() {
-        return;
-    }
-
-    app.highlight = Some(match app.highlight {
-        None => Highlight::Bar {
-            upgrade: Upgrade::Speed,
-            row: 0,
-        },
-        Some(Highlight::Bar { upgrade, mut row }) => match dir {
-            Dir::Left => Highlight::Bar {
-                row,
-                upgrade: upgrade.prev(),
-            },
-            Dir::Right => Highlight::Bar {
-                row,
-                upgrade: upgrade.next(),
-            },
-            Dir::Up => {
-                if row > 0 {
-                    row -= 1;
-                } else {
-                    row = app.bars.len() - 1;
-                }
-                Highlight::Bar { row, upgrade }
-            }
-            Dir::Down => {
-                if row == app.bars.len() - 1 {
-                    row = 0;
-                } else {
-                    row += 1;
-                }
-                Highlight::Bar { row, upgrade }
-            }
-        },
-        Some(Highlight::Global { upgrade }) => match dir {
-            Dir::Left => Highlight::Global {
-                upgrade: upgrade.prev(),
-            },
-            Dir::Right => Highlight::Global {
-                upgrade: upgrade.next(),
-            },
-            Dir::Down | Dir::Up => Highlight::Global { upgrade },
-        },
-    });
 }
 
 fn log(s: &str) {

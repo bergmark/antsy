@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
+
+use crate::controls::UiState;
 use crate::opts::Opts;
 
 #[derive(Serialize, Deserialize)]
@@ -31,7 +33,7 @@ impl App {
             tick: now,
             last_bar_spawn: None,
             bars_to_spawn: self.bars_to_spawn,
-            highlight: None,
+            ui_state: UiState::new(),
             last_bar_number: self.last_bar_number,
             global_upgrades: self
                 .global_upgrades
