@@ -29,7 +29,8 @@ struct UpgradeCost {
 
 impl App {
     pub(crate) fn load(opts: Opts, now: Instant) -> App {
-        let mut app = if !opts.save_file.exists() {
+        let save = std::path::PathBuf::from(&opts.save_file);
+        let mut app = if !save.exists() {
             App::new(opts)
         } else {
             let contents = std::fs::read_to_string(&opts.save_file).unwrap();
@@ -136,30 +137,57 @@ impl App {
         }
     }
 
-    pub(crate) fn purchase_upgrade(&mut self) {
-        if let Some(Highlight::Bar { upgrade, row }) = self.ui_state.highlight {
-            if let Some(upgrade_cost) = self.upgrade_price(row, upgrade) {
-                let global_speed_levels = self.get_global_upgrade_u(GlobalUpgrade::Speed);
-                self.bars[row].inc_upgrade(upgrade, global_speed_levels);
-                self.bars[upgrade_cost.target].gathered -= upgrade_cost.cost;
+    pub(crate) fn try_purchase_highlighted_upgrade(&mut self) {
+        if let Some(highlight) = self.ui_state.highlight {
+            self.try_purchase_upgrade(highlight);
+        }
+    }
+
+    fn try_purchase_upgrade(&mut self, highlight: Highlight) -> bool {
+        match highlight {
+            Highlight::Bar { upgrade, row } => {
+                if let Some(upgrade_cost) = self.upgrade_price(row, upgrade) {
+                    let global_speed_levels = self.get_global_upgrade_u(GlobalUpgrade::Speed);
+                    self.bars[row].inc_upgrade(upgrade, global_speed_levels);
+                    self.bars[upgrade_cost.target].gathered -= upgrade_cost.cost;
+                    return true;
+                }
+            }
+            Highlight::Global { upgrade } => {
+                if let Some(upgrade_cost) = self.global_upgrade_price(upgrade) {
+                    *self
+                        .global_upgrades
+                        .entry(upgrade)
+                        .or_insert_with(|| panic!("Should have been init'd")) += 1;
+                    let last_i = self.bars.len() - 1;
+                    self.bars[last_i].gathered -= upgrade_cost;
+                    if let GlobalUpgrade::ProgressBars = upgrade {
+                        self.bars_to_spawn += 2;
+                    }
+                    if let GlobalUpgrade::Speed = upgrade {
+                        let global_speed_levels = self.get_global_upgrade_u(GlobalUpgrade::Speed);
+                        for bar in &mut self.bars {
+                            bar.adjust_speed_multiplier(global_speed_levels);
+                        }
+                    }
+                    return true;
+                }
             }
         }
-        if let Some(Highlight::Global { upgrade }) = self.ui_state.highlight {
-            if let Some(upgrade_cost) = self.global_upgrade_price(upgrade) {
-                *self
-                    .global_upgrades
-                    .entry(upgrade)
-                    .or_insert_with(|| panic!("Should have been init'd")) += 1;
-                let last_i = self.bars.len() - 1;
-                self.bars[last_i].gathered -= upgrade_cost;
-                if let GlobalUpgrade::ProgressBars = upgrade {
-                    self.bars_to_spawn += 2;
-                }
-                if let GlobalUpgrade::Speed = upgrade {
-                    let global_speed_levels = self.get_global_upgrade_u(GlobalUpgrade::Speed);
-                    for bar in &mut self.bars {
-                        bar.adjust_speed_multiplier(global_speed_levels);
-                    }
+        false
+    }
+
+    pub(crate) fn purchase_any_upgrade(&mut self) {
+        for upgrade in GlobalUpgrade::upgrade_preference_order() {
+            if self.try_purchase_upgrade(Highlight::Global { upgrade }) {
+                return;
+            }
+        }
+        let bar_len = self.bars.len();
+        for upgrade in Upgrade::upgrade_preference_order() {
+            for row in (0..bar_len).rev() {
+                if self.try_purchase_upgrade(Highlight::Bar { upgrade, row }) {
+                    return;
                 }
             }
         }

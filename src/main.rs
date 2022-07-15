@@ -34,7 +34,18 @@ use opts::Opts;
 use upgrade::{GlobalUpgrade, Upgrade};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let opts = Opts::from_args();
+    let mut opts = Opts::from_args();
+
+    if opts.new_save && opts.save_file != "save.json" {
+        panic!("Cannot specify both new-save and save-file");
+    }
+    if opts.new_save {
+        opts.save_file = format!(
+            "antsy-{}.json",
+            chrono::Utc::now().format("%Y-%m-%dT%H-%M-%S")
+        );
+    }
+
     let app = App::load(opts, Instant::now());
 
     // setup terminal
@@ -78,12 +89,13 @@ fn run_app<B: Backend>(
         if event::poll(timeout)? {
             if let Event::Key(key) = event::read()? {
                 match app.ui_state.handle_keypress(key, app.bars.len()) {
-                    Action::PurchaseUpgrade => app.purchase_upgrade(),
+                    Action::PurchaseUpgrade => app.try_purchase_highlighted_upgrade(),
                     Action::Quit => {
                         app.save();
                         return Ok(());
                     }
                     Action::Noop => (),
+                    Action::UpgradeAny => app.purchase_any_upgrade(),
                 }
             }
         }

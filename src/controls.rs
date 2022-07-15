@@ -17,6 +17,7 @@ pub(crate) enum Action {
     Quit,
     Noop,
     PurchaseUpgrade,
+    UpgradeAny,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -37,6 +38,7 @@ impl UiState {
     pub(crate) fn handle_keypress(&mut self, key: KeyEvent, bar_len: usize) -> Action {
         match key.code {
             KeyCode::Char('q') => return Action::Quit,
+            KeyCode::Char('u') => return Action::UpgradeAny,
             KeyCode::Enter | KeyCode::Char(' ') => return Action::PurchaseUpgrade,
             KeyCode::Tab => self.change_highlight_pane(bar_len),
             KeyCode::Down => self.move_highlight(bar_len, Dir::Down),

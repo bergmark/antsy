@@ -65,6 +65,11 @@ impl Upgrade {
     pub(crate) fn cost(self, level: usize) -> Float {
         self.base_cost() * self.scaling().powf(level as f64)
     }
+
+    pub const fn upgrade_preference_order() -> [Self; Self::COUNT] {
+        use Upgrade::*;
+        [Quadruple, Triple, Double, Gain, Speed]
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, EnumCount, Hash)]
@@ -121,5 +126,10 @@ impl GlobalUpgrade {
     }
     pub(crate) fn cost(self, level: usize) -> Float {
         self.base_cost() * self.scaling().powf(level as f64)
+    }
+
+    pub const fn upgrade_preference_order() -> [Self; Self::COUNT] {
+        use GlobalUpgrade::*;
+        [ProgressBars, Gain, Speed, ExpGain, ExpBoost]
     }
 }

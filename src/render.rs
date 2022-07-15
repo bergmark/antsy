@@ -171,7 +171,11 @@ fn render_speed<B: Backend>(f: &mut Frame<B>, app: &App, chunk: Rect) {
         let speed = bar.speed_multiplier(app.global_upgrades[&GlobalUpgrade::Speed]);
         let speed = ((speed.0 * 100.) as usize as f64) / 100.;
         let num = format_num::NumberFormat::new();
-        render_text(f, chunk, &format!("x {}", &num.format(".2", speed)));
+        render_text(
+            f,
+            chunk,
+            &format!("x{} ({})", &num.format(".2", speed), bar.gain_exponent),
+        );
     }
 }
 
