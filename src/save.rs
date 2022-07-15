@@ -11,6 +11,8 @@ pub(crate) struct App {
     bars_to_spawn: usize,
     last_bar_number: usize,
     global_upgrades: HashMap<GlobalUpgrade, usize>,
+    // Doesn't exist in old saves
+    prestige: Option<Prestige>,
 }
 
 impl App {
@@ -24,6 +26,7 @@ impl App {
                 .iter()
                 .map(|(u, n)| (GlobalUpgrade::from_game(*u), *n))
                 .collect(),
+            prestige: Some(Prestige::from_game(&a.prestige)),
         }
     }
 
@@ -33,7 +36,7 @@ impl App {
             tick: now,
             last_bar_spawn: None,
             bars_to_spawn: self.bars_to_spawn,
-            ui_state: UiState::new(),
+            ui_state: UiState::new(opts.start_state),
             last_bar_number: self.last_bar_number,
             global_upgrades: self
                 .global_upgrades
@@ -42,6 +45,9 @@ impl App {
                 .collect(),
             last_save: None,
             opts,
+            prestige: self
+                .prestige
+                .map_or(crate::prestige::Prestige::new(), Prestige::into_game),
         }
     }
 }
@@ -152,7 +158,7 @@ pub enum Upgrade {
 }
 
 impl Upgrade {
-    fn from_game(u: &crate::Upgrade) -> Upgrade {
+    fn from_game(u: &crate::Upgrade) -> Self {
         use Upgrade::*;
         match u {
             crate::Upgrade::Speed => Speed,
@@ -171,6 +177,95 @@ impl Upgrade {
             Double => crate::Upgrade::Double,
             Triple => crate::Upgrade::Triple,
             Quadruple => crate::Upgrade::Quadruple,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct Prestige {
+    current: f64,
+    // Doesn't exist in old saves
+    upgrades: Option<HashMap<PrestigeUpgrade, usize>>,
+}
+
+impl Prestige {
+    fn from_game(p: &crate::prestige::Prestige) -> Self {
+        Self {
+            current: p.current.into(),
+            upgrades: Some(
+                p.upgrades
+                    .iter()
+                    .map(|(u, n)| (PrestigeUpgrade::from_game(u), *n))
+                    .collect(),
+            ),
+        }
+    }
+    fn into_game(self) -> crate::prestige::Prestige {
+        let Self { current, upgrades } = self;
+        crate::prestige::Prestige {
+            current: current.into(),
+            upgrades: upgrades.map_or_else(
+                || HashMap::new(),
+                |upgrades| {
+                    upgrades
+                        .into_iter()
+                        .map(|(u, n)| (u.into_game(), n))
+                        .collect()
+                },
+            ),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+enum PrestigeUpgrade {
+    CompleteFaster,
+    LevelUpFaster,
+    TransferExtraExp,
+    TransferExtraValue,
+    UpgradeAnyButton,
+    AutomateGlobalSpeed,
+    AutomateGlobalExpBoost,
+    AutomateProgressBars,
+    AutomateGlobalGain,
+    AutomateGlobalExpGain,
+    ChildCostReduction,
+}
+
+impl PrestigeUpgrade {
+    fn from_game(u: &crate::prestige::PrestigeUpgrade) -> Self {
+        use crate::prestige::PrestigeUpgrade as Game;
+        use PrestigeUpgrade::*;
+        match u {
+            Game::CompleteFaster => CompleteFaster,
+            Game::LevelUpFaster => LevelUpFaster,
+            Game::TransferExtraExp => TransferExtraExp,
+            Game::TransferExtraValue => TransferExtraValue,
+            Game::UpgradeAnyButton => UpgradeAnyButton,
+            Game::AutomateGlobalSpeed => AutomateGlobalSpeed,
+            Game::AutomateGlobalExpBoost => AutomateGlobalExpBoost,
+            Game::AutomateProgressBars => AutomateProgressBars,
+            Game::AutomateGlobalGain => AutomateGlobalGain,
+            Game::AutomateGlobalExpGain => AutomateGlobalExpGain,
+            Game::ChildCostReduction => ChildCostReduction,
+        }
+    }
+
+    fn into_game(self) -> crate::prestige::PrestigeUpgrade {
+        use crate::prestige::PrestigeUpgrade as Game;
+        use PrestigeUpgrade::*;
+        match self {
+            CompleteFaster => Game::CompleteFaster,
+            LevelUpFaster => Game::LevelUpFaster,
+            TransferExtraExp => Game::TransferExtraExp,
+            TransferExtraValue => Game::TransferExtraValue,
+            UpgradeAnyButton => Game::UpgradeAnyButton,
+            AutomateGlobalSpeed => Game::AutomateGlobalSpeed,
+            AutomateGlobalExpBoost => Game::AutomateGlobalExpBoost,
+            AutomateProgressBars => Game::AutomateProgressBars,
+            AutomateGlobalGain => Game::AutomateGlobalGain,
+            AutomateGlobalExpGain => Game::AutomateGlobalExpGain,
+            ChildCostReduction => Game::ChildCostReduction,
         }
     }
 }

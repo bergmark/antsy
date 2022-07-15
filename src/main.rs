@@ -22,16 +22,17 @@ mod bar;
 mod controls;
 mod float;
 mod opts;
+mod prestige;
 mod render;
 mod save;
 mod upgrade;
 
-use app::App;
-use bar::Bar;
-use controls::Action;
-use float::Float;
-use opts::Opts;
-use upgrade::{GlobalUpgrade, Upgrade};
+use self::app::App;
+use self::bar::Bar;
+use self::controls::Action;
+use self::float::Float;
+use self::opts::Opts;
+use self::upgrade::{GlobalUpgrade, Upgrade};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut opts = Opts::from_args();

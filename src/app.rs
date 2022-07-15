@@ -8,6 +8,7 @@ use crate::bar::Bar;
 use crate::controls::{Highlight, UiState};
 use crate::float::Float;
 use crate::opts::Opts;
+use crate::prestige::Prestige;
 use crate::upgrade::{GlobalUpgrade, Upgrade};
 
 pub(crate) struct App {
@@ -20,6 +21,7 @@ pub(crate) struct App {
     pub(crate) last_save: Option<Instant>,
     pub(crate) opts: Opts,
     pub(crate) ui_state: UiState,
+    pub(crate) prestige: Prestige,
 }
 
 struct UpgradeCost {
@@ -61,11 +63,12 @@ impl App {
             tick: Instant::now(),
             last_bar_spawn: None,
             bars_to_spawn: 4,
-            ui_state: UiState::new(),
+            ui_state: UiState::new(opts.start_state),
             last_bar_number: 0,
             global_upgrades: GlobalUpgrade::iter().map(|g| (g, 0)).collect(),
             last_save: None,
             opts,
+            prestige: Prestige::new(),
         }
     }
 

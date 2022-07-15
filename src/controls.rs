@@ -1,14 +1,26 @@
 use crossterm::event::{KeyCode, KeyEvent};
+use strum::*;
 
 use crate::upgrade::{GlobalUpgrade, Upgrade};
 
+#[derive(EnumString, Copy, Clone)]
+#[strum(serialize_all = "kebab-case")]
+pub(crate) enum UiStates {
+    Normal,
+    Prestige,
+}
+
 pub(crate) struct UiState {
+    pub(crate) active: UiStates,
     pub(crate) highlight: Option<Highlight>,
 }
 
 impl UiState {
-    pub(crate) fn new() -> UiState {
-        UiState { highlight: None }
+    pub(crate) fn new(active: Option<UiStates>) -> UiState {
+        UiState {
+            active: active.unwrap_or(UiStates::Normal),
+            highlight: None,
+        }
     }
 }
 
@@ -36,16 +48,30 @@ enum Dir {
 
 impl UiState {
     pub(crate) fn handle_keypress(&mut self, key: KeyEvent, bar_len: usize) -> Action {
-        match key.code {
-            KeyCode::Char('q') => return Action::Quit,
-            KeyCode::Char('u') => return Action::UpgradeAny,
-            KeyCode::Enter | KeyCode::Char(' ') => return Action::PurchaseUpgrade,
-            KeyCode::Tab => self.change_highlight_pane(bar_len),
-            KeyCode::Down => self.move_highlight(bar_len, Dir::Down),
-            KeyCode::Up => self.move_highlight(bar_len, Dir::Up),
-            KeyCode::Right => self.move_highlight(bar_len, Dir::Right),
-            KeyCode::Left => self.move_highlight(bar_len, Dir::Left),
-            _ => {}
+        match self.active {
+            UiStates::Normal => match key.code {
+                KeyCode::Char('p') => {
+                    self.active = UiStates::Prestige;
+                }
+                KeyCode::Char('q') => return Action::Quit,
+                KeyCode::Char('u') => return Action::UpgradeAny,
+                KeyCode::Enter | KeyCode::Char(' ') => return Action::PurchaseUpgrade,
+                KeyCode::Tab => self.change_highlight_pane(bar_len),
+                KeyCode::Down => self.move_highlight(bar_len, Dir::Down),
+                KeyCode::Up => self.move_highlight(bar_len, Dir::Up),
+                KeyCode::Right => self.move_highlight(bar_len, Dir::Right),
+                KeyCode::Left => self.move_highlight(bar_len, Dir::Left),
+                _ => {}
+            },
+            UiStates::Prestige => match key.code {
+                KeyCode::Char('p') => {
+                    self.active = UiStates::Normal;
+                }
+                KeyCode::Char('q') => {
+                    return Action::Quit;
+                }
+                _ => {}
+            },
         }
 
         Action::Noop

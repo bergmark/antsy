@@ -1,5 +1,7 @@
 use structopt::StructOpt;
 
+use crate::controls::UiStates;
+
 #[derive(StructOpt)]
 pub(crate) struct Opts {
     #[structopt(long)]
@@ -8,4 +10,6 @@ pub(crate) struct Opts {
     pub(crate) save_file: String,
     #[structopt(long, default_value = "0.25")]
     pub(crate) speed_base: f64,
+    #[structopt(long)]
+    pub(crate) start_state: Option<UiStates>,
 }
