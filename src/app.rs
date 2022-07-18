@@ -5,10 +5,10 @@ use std::{
 use strum::*;
 
 use crate::bar::Bar;
-use crate::controls::{Highlight, UiState};
 use crate::float::Float;
 use crate::opts::Opts;
 use crate::prestige::Prestige;
+use crate::ui::{self, Ui, UiState};
 use crate::upgrade::{GlobalUpgrade, Upgrade};
 
 pub(crate) struct App {
@@ -20,7 +20,7 @@ pub(crate) struct App {
     pub(crate) global_upgrades: HashMap<GlobalUpgrade, usize>,
     pub(crate) last_save: Option<Instant>,
     pub(crate) opts: Opts,
-    pub(crate) ui_state: UiState,
+    pub(crate) ui: Ui,
     pub(crate) prestige: Prestige,
 }
 
@@ -63,13 +63,26 @@ impl App {
             tick: Instant::now(),
             last_bar_spawn: None,
             bars_to_spawn: 4,
-            ui_state: UiState::new(opts.start_state),
+            ui: Ui::new(opts.start_state),
             last_bar_number: 0,
             global_upgrades: GlobalUpgrade::iter().map(|g| (g, 0)).collect(),
             last_save: None,
             opts,
             prestige: Prestige::new(),
         }
+    }
+
+    pub(crate) fn prestige(&mut self) {
+        self.save();
+
+        self.prestige.prestige(self.bars.len());
+
+        self.bars = VecDeque::new();
+        self.last_bar_spawn = None;
+        self.last_bar_number = 0;
+        self.bars_to_spawn = 4;
+        self.global_upgrades = GlobalUpgrade::iter().map(|g| (g, 0)).collect();
+        self.ui.to_normal();
     }
 
     pub(crate) fn get_global_upgrade(&self, upgrade: GlobalUpgrade) -> Float {
@@ -81,9 +94,11 @@ impl App {
 
     fn spawn_bar(&mut self) {
         self.last_bar_number += 1;
-        self.bars
-            .push_front(Bar::new(self.last_bar_number, self.opts.speed_base));
-        if let Some(Highlight::Bar { row, upgrade: _ }) = &mut self.ui_state.highlight {
+        self.bars.push_front(Bar::new(self.last_bar_number));
+        if let UiState::Normal(ui::Normal {
+            highlight: ui::normal::Highlight::Bar { row, upgrade: _ },
+        }) = &mut self.ui.state
+        {
             *row += 1;
         }
     }
@@ -124,31 +139,33 @@ impl App {
     }
 
     pub(crate) fn highlight_cost_target(&self) -> Option<i64> {
-        match self.ui_state.highlight {
-            Some(Highlight::Bar { row, upgrade }) => {
+        match self.ui.normal_highlight() {
+            Some(ui::normal::Highlight::Bar { row, upgrade }) => {
                 let target = row as i64 - upgrade.cost_target();
                 Some(target)
             }
-            Some(Highlight::Global { .. }) => {
+            Some(ui::normal::Highlight::Global { .. }) => {
                 if self.bars.is_empty() {
                     None
                 } else {
                     Some((self.bars.len() - 1) as i64)
                 }
             }
+            Some(ui::normal::Highlight::None) => None,
             None => None,
         }
     }
 
     pub(crate) fn try_purchase_highlighted_upgrade(&mut self) {
-        if let Some(highlight) = self.ui_state.highlight {
+        if let Some(highlight) = self.ui.normal_highlight() {
             self.try_purchase_upgrade(highlight);
         }
     }
 
-    fn try_purchase_upgrade(&mut self, highlight: Highlight) -> bool {
+    fn try_purchase_upgrade(&mut self, highlight: ui::normal::Highlight) -> bool {
         match highlight {
-            Highlight::Bar { upgrade, row } => {
+            ui::normal::Highlight::None => {}
+            ui::normal::Highlight::Bar { upgrade, row } => {
                 if let Some(upgrade_cost) = self.upgrade_price(row, upgrade) {
                     let global_speed_levels = self.get_global_upgrade_u(GlobalUpgrade::Speed);
                     self.bars[row].inc_upgrade(upgrade, global_speed_levels);
@@ -156,7 +173,7 @@ impl App {
                     return true;
                 }
             }
-            Highlight::Global { upgrade } => {
+            ui::normal::Highlight::Global { upgrade } => {
                 if let Some(upgrade_cost) = self.global_upgrade_price(upgrade) {
                     *self
                         .global_upgrades
@@ -182,18 +199,22 @@ impl App {
 
     pub(crate) fn purchase_any_upgrade(&mut self) {
         for upgrade in GlobalUpgrade::upgrade_preference_order() {
-            if self.try_purchase_upgrade(Highlight::Global { upgrade }) {
+            if self.try_purchase_upgrade(ui::normal::Highlight::Global { upgrade }) {
                 return;
             }
         }
         let bar_len = self.bars.len();
         for upgrade in Upgrade::upgrade_preference_order() {
             for row in (0..bar_len).rev() {
-                if self.try_purchase_upgrade(Highlight::Bar { upgrade, row }) {
+                if self.try_purchase_upgrade(ui::normal::Highlight::Bar { upgrade, row }) {
                     return;
                 }
             }
         }
+    }
+
+    fn speed_base(&self) -> Float {
+        Float(self.opts.speed_base)
     }
 
     pub(crate) fn on_tick(&mut self, now: Instant) {
@@ -211,7 +232,9 @@ impl App {
 
         for i in 0..self.bars.len() {
             let read_bar = self.bars.get(i).unwrap().clone();
+            let speed_base = self.speed_base();
             let done = self.bars[i].inc(
+                speed_base,
                 self.global_upgrades[&GlobalUpgrade::Speed],
                 self.global_upgrades[&GlobalUpgrade::ExpGain],
                 self.global_upgrades[&GlobalUpgrade::ExpBoost],

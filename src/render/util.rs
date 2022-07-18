@@ -76,3 +76,28 @@ pub(super) fn mk_button(label: &str, highlight: bool, can_afford: bool) -> Parag
         .alignment(Alignment::Center)
         .wrap(Wrap { trim: true })
 }
+
+pub(super) fn mk_button_align(
+    label: &str,
+    highlight: bool,
+    can_afford: bool,
+    alignment: Alignment,
+) -> Paragraph<'static> {
+    let color = if highlight {
+        Color::Yellow
+    } else {
+        Color::White
+    };
+    let modifier = if can_afford {
+        Modifier::BOLD | Modifier::UNDERLINED
+    } else {
+        Modifier::empty()
+    };
+    let text = Span::styled(
+        format!("  {label}  "),
+        Style::default().fg(color).add_modifier(modifier),
+    );
+    Paragraph::new(text)
+        .alignment(alignment)
+        .wrap(Wrap { trim: true })
+}

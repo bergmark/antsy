@@ -1,7 +1,7 @@
-use crate::app::App;
-use crate::float::Float;
 use std::collections::HashMap;
 use strum::*;
+
+use crate::float::Float;
 
 pub(crate) struct Prestige {
     pub(crate) current: Float,
@@ -12,20 +12,24 @@ impl Prestige {
     pub(crate) fn new() -> Self {
         Self {
             current: 0.into(),
-            upgrades: HashMap::new(),
+            upgrades: PrestigeUpgrade::iter().map(|u| (u, 0)).collect(),
         }
     }
 
-    pub(crate) fn can_prestige(&self, app: &App) -> bool {
-        app.bars.len() >= 10
+    pub(crate) fn can_prestige(&self, bar_len: usize) -> bool {
+        bar_len >= 10
     }
 
-    pub(crate) fn claimable_prestige(&self, app: &App) -> Float {
-        if !self.can_prestige(app) {
+    pub(crate) fn claimable_prestige(&self, bar_len: usize) -> Float {
+        if !self.can_prestige(bar_len) {
             0.into()
         } else {
-            Float((app.bars.len() as f64) / 10.)
+            Float((bar_len as f64) / 10.)
         }
+    }
+
+    pub(crate) fn prestige(&mut self, bar_len: usize) {
+        self.current += self.claimable_prestige(bar_len);
     }
 
     pub(crate) fn cost(&self, upgrade: PrestigeUpgrade) -> Float {
@@ -40,6 +44,25 @@ impl Prestige {
         upgrade
             .max_level()
             .map_or(false, |max| self.get_level(upgrade) >= max)
+    }
+
+    pub(crate) fn can_afford(&self, upgrade: PrestigeUpgrade) -> bool {
+        if self.is_max_level(upgrade) {
+            return false;
+        }
+        self.current >= self.cost(upgrade)
+    }
+
+    pub(crate) fn try_purchase_upgrade(&mut self, upgrade: PrestigeUpgrade) -> bool {
+        if !self.can_afford(upgrade) {
+            return false;
+        }
+        self.current -= self.cost(upgrade);
+        *self
+            .upgrades
+            .entry(upgrade)
+            .or_insert_with(|| panic!("Prestige upgrade sohuld have been init'd")) += 1;
+        true
     }
 }
 

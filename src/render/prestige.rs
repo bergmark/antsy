@@ -11,26 +11,32 @@ use tui::{
 use crate::app::App;
 use crate::prestige::PrestigeUpgrade;
 use crate::render::util::*;
+use crate::ui::prestige::Highlight;
+use crate::ui::Prestige;
 
-pub(crate) fn render<B: Backend>(f: &mut Frame<B>, app: &App) {
+pub(crate) fn render<B: Backend>(f: &mut Frame<B>, app: &App, ui_state: Prestige) {
     let chunks = render_border(f, f.size(), "Prestige");
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Length(40), Constraint::Length(10)])
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(chunks);
 
     let left = chunks[0];
     let right = chunks[1];
 
-    render_prestige_stats(f, app, left);
-    render_prestige_upgrades(f, app, right);
+    render_prestige_stats(f, app, ui_state, left);
+    render_prestige_upgrades(f, app, ui_state, right);
 }
 
-fn render_prestige_stats<B: Backend>(f: &mut Frame<B>, app: &App, chunks: Rect) {
-    if !app.prestige.can_prestige(app) {
-        render_text(f, chunks, "You cannot prestige until you reach 10 bars");
-    } else {
-        let chunks = rect_to_lines(chunks);
+fn render_prestige_stats<B: Backend>(
+    f: &mut Frame<B>,
+    app: &App,
+    ui_state: Prestige,
+    chunks: Rect,
+) {
+    let chunks = rect_to_lines(chunks);
+    let can_prestige = app.prestige.can_prestige(app.bars.len());
+    if can_prestige {
         render_left_text(
             f,
             chunks[0],
@@ -41,22 +47,57 @@ fn render_prestige_stats<B: Backend>(f: &mut Frame<B>, app: &App, chunks: Rect) 
             chunks[1],
             &format!(
                 "Points to claim on prestige: {}",
-                app.prestige.claimable_prestige(app)
+                app.prestige.claimable_prestige(app.bars.len())
             ),
         );
+    } else {
+        render_text(f, chunks[0], "You cannot prestige until you reach 10 bars");
     }
+
+    // chunks[2]
+
+    f.render_widget(
+        mk_button(
+            "Prestige",
+            Highlight::PrestigeButton == ui_state.highlight,
+            app.prestige.can_prestige(app.bars.len()),
+        ),
+        chunks[3],
+    );
+
+    // chunks[4]
+
+    render_text(
+        f,
+        chunks[5],
+        &format!(
+            "Current prestige points: {points}",
+            points = app.prestige.current
+        ),
+    );
 }
 
-fn render_prestige_upgrades<B: Backend>(f: &mut Frame<B>, app: &App, chunks: Rect) {
+fn render_prestige_upgrades<B: Backend>(
+    f: &mut Frame<B>,
+    app: &App,
+    ui_state: Prestige,
+    chunks: Rect,
+) {
     let chunks = rect_to_lines(chunks);
-    for (upgrade, chunk) in PrestigeUpgrade::iter().zip(chunks.into_iter()) {
+    for (i, (upgrade, chunk)) in PrestigeUpgrade::iter().zip(chunks.into_iter()).enumerate() {
         let cost = if app.prestige.is_max_level(upgrade) {
             "MAXED".to_owned()
         } else {
             app.prestige.cost(upgrade).to_string()
         };
         let text = format!("{label}: {cost}", label = prestige_upgrade_label(upgrade),);
-        render_left_text(f, chunk, &text);
+        let button = mk_button_align(
+            &text,
+            Highlight::Upgrade(i) == ui_state.highlight,
+            app.prestige.can_afford(upgrade),
+            Alignment::Left,
+        );
+        f.render_widget(button, chunk)
     }
 }
 

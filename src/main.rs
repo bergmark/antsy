@@ -12,6 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 use structopt::StructOpt;
+use strum::*;
 use tui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
@@ -25,6 +26,7 @@ mod opts;
 mod prestige;
 mod render;
 mod save;
+mod ui;
 mod upgrade;
 
 use self::app::App;
@@ -32,6 +34,7 @@ use self::bar::Bar;
 use self::controls::Action;
 use self::float::Float;
 use self::opts::Opts;
+use self::prestige::PrestigeUpgrade;
 use self::upgrade::{GlobalUpgrade, Upgrade};
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -89,7 +92,10 @@ fn run_app<B: Backend>(
             .unwrap_or_else(|| Duration::from_secs(0));
         if event::poll(timeout)? {
             if let Event::Key(key) = event::read()? {
-                match app.ui_state.handle_keypress(key, app.bars.len()) {
+                match app
+                    .ui
+                    .handle_keypress(key, app.bars.len(), PrestigeUpgrade::COUNT)
+                {
                     Action::PurchaseUpgrade => app.try_purchase_highlighted_upgrade(),
                     Action::Quit => {
                         app.save();
@@ -97,6 +103,16 @@ fn run_app<B: Backend>(
                     }
                     Action::Noop => (),
                     Action::UpgradeAny => app.purchase_any_upgrade(),
+                    Action::Prestige => {
+                        if app.prestige.can_prestige(app.bars.len()) {
+                            app.prestige();
+                        }
+                    }
+                    Action::PurchasePrestigeUpgrade => {
+                        if let Some(highlight) = app.ui.highlighted_prestige_upgrade() {
+                            app.prestige.try_purchase_upgrade(highlight);
+                        }
+                    }
                 }
             }
         }

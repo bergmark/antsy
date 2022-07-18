@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
+use strum::*;
 
-use crate::controls::UiState;
 use crate::opts::Opts;
+use crate::ui::Ui;
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct App {
@@ -31,18 +32,24 @@ impl App {
     }
 
     pub(crate) fn into_game(self, opts: Opts, now: Instant) -> crate::app::App {
+        let mut global_upgrades: HashMap<_, _> = self
+            .global_upgrades
+            .into_iter()
+            .map(|(u, n)| (u.into_game(), n))
+            .collect();
+        // When adding new upgrades, they may not exist in saves.
+        for upgrade in crate::upgrade::GlobalUpgrade::iter() {
+            global_upgrades.entry(upgrade).or_insert(0);
+        }
+
         crate::app::App {
             bars: self.bars.into_iter().map(|b| b.into_game(now)).collect(),
             tick: now,
             last_bar_spawn: None,
             bars_to_spawn: self.bars_to_spawn,
-            ui_state: UiState::new(opts.start_state),
+            ui: Ui::new(opts.start_state),
             last_bar_number: self.last_bar_number,
-            global_upgrades: self
-                .global_upgrades
-                .into_iter()
-                .map(|(u, n)| (u.into_game(), n))
-                .collect(),
+            global_upgrades,
             last_save: None,
             opts,
             prestige: self
@@ -94,7 +101,6 @@ struct Bar {
     exp: usize,
     level: usize,
     boost_remaining: Duration,
-    speed_base: f64,
     gain_exponent: usize,
     level_speed: f64,
 }
@@ -120,7 +126,6 @@ impl Bar {
                     Duration::from_secs(0)
                 }
             }),
-            speed_base: b.speed_base.into(),
             gain_exponent: b.gain_exponent,
             level_speed: b.level_speed.into(),
         }
@@ -141,7 +146,6 @@ impl Bar {
             exp: self.exp,
             level: self.level,
             boost_until: Some(now + self.boost_remaining),
-            speed_base: self.speed_base.into(),
             gain_exponent: self.gain_exponent,
             level_speed: self.level_speed.into(),
         }
@@ -202,17 +206,21 @@ impl Prestige {
     }
     fn into_game(self) -> crate::prestige::Prestige {
         let Self { current, upgrades } = self;
+
+        let mut upgrades = upgrades.map_or_else(HashMap::new, |upgrades| {
+            upgrades
+                .into_iter()
+                .map(|(u, n)| (u.into_game(), n))
+                .collect()
+        });
+        // When adding new upgrades, they may not exist in saves.
+        for upgrade in crate::prestige::PrestigeUpgrade::iter() {
+            upgrades.entry(upgrade).or_insert(0);
+        }
+
         crate::prestige::Prestige {
             current: current.into(),
-            upgrades: upgrades.map_or_else(
-                || HashMap::new(),
-                |upgrades| {
-                    upgrades
-                        .into_iter()
-                        .map(|(u, n)| (u.into_game(), n))
-                        .collect()
-                },
-            ),
+            upgrades,
         }
     }
 }

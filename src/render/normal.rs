@@ -1,19 +1,13 @@
 use format_num::format_num;
 use strum::*;
-use tui::{
-    backend::Backend,
-    layout::{Constraint, Direction, Layout, Rect, *},
-    style::*,
-    text::*,
-    widgets::*,
-    Frame,
-};
+use tui::{backend::Backend, layout::*, style::*, widgets::*, Frame};
 
 use crate::app::App;
 use crate::bar::Bar;
-use crate::controls::Highlight;
 use crate::float::Float;
 use crate::render::util::*;
+use crate::ui::normal::Highlight;
+use crate::ui::Normal;
 use crate::upgrade::{GlobalUpgrade, Upgrade};
 
 const UPGRADE_0_WIDTH: u16 = "| x1.3 SPD: DD.DM |".len() as u16;
@@ -22,7 +16,7 @@ const UPGRADE_2_WIDTH: u16 = "| x2: DD.DM from #NNN |".len() as u16;
 const UPGRADE_3_WIDTH: u16 = "| x3: DD.DM from #NNN |".len() as u16;
 const UPGRADE_4_WIDTH: u16 = "| x4: DD.DM from #NNN |".len() as u16;
 
-pub(crate) fn render<B: Backend>(f: &mut Frame<B>, app: &App) {
+pub(crate) fn render<B: Backend>(f: &mut Frame<B>, app: &App, ui_state: Normal) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Percentage(80), Constraint::Length(10)])
@@ -75,8 +69,8 @@ pub(crate) fn render<B: Backend>(f: &mut Frame<B>, app: &App) {
     render_transferred(f, app, transferred);
     render_level(f, app, level);
     render_speed(f, app, speed);
-    render_bar_upgrades(f, app, bar_upgrades);
-    render_global_upgrades(f, app, bottom);
+    render_bar_upgrades(f, app, ui_state, bar_upgrades);
+    render_global_upgrades(f, app, ui_state, bottom);
 }
 
 fn render_transferred<B: Backend>(f: &mut Frame<B>, app: &App, chunk: Rect) {
@@ -169,7 +163,7 @@ fn render_level<B: Backend>(f: &mut Frame<B>, app: &App, chunk: Rect) {
     }
 }
 
-fn render_bar_upgrades<B: Backend>(f: &mut Frame<B>, app: &App, chunk: Rect) {
+fn render_bar_upgrades<B: Backend>(f: &mut Frame<B>, app: &App, ui_state: Normal, chunk: Rect) {
     let chunk = render_border(f, chunk, "Upgrades");
     let chunks = rect_to_lines(chunk);
     assert_eq!(Upgrade::COUNT, 5);
@@ -192,12 +186,12 @@ fn render_bar_upgrades<B: Backend>(f: &mut Frame<B>, app: &App, chunk: Rect) {
             )
             .split(chunk);
         for (upgrade, chunk) in Upgrade::iter().zip(chunks.into_iter()) {
-            let highlight = match app.ui_state.highlight {
-                None | Some(Highlight::Global { .. }) => false,
-                Some(Highlight::Bar {
+            let highlight = match ui_state.highlight {
+                Highlight::None | Highlight::Global { .. } => false,
+                Highlight::Bar {
                     row: highlight_row,
                     upgrade: highlight_upgrade,
-                }) => i == highlight_row && upgrade == highlight_upgrade,
+                } => i == highlight_row && upgrade == highlight_upgrade,
             };
             let can_afford = app.can_afford(i, upgrade);
             let button = mk_button(
@@ -210,7 +204,7 @@ fn render_bar_upgrades<B: Backend>(f: &mut Frame<B>, app: &App, chunk: Rect) {
     }
 }
 
-fn render_global_upgrades<B: Backend>(f: &mut Frame<B>, app: &App, chunk: Rect) {
+fn render_global_upgrades<B: Backend>(f: &mut Frame<B>, app: &App, ui_state: Normal, chunk: Rect) {
     let chunk = render_border(f, chunk, "Global upgrades");
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
@@ -222,11 +216,11 @@ fn render_global_upgrades<B: Backend>(f: &mut Frame<B>, app: &App, chunk: Rect) 
         .split(chunk);
 
     for (upgrade, chunk) in GlobalUpgrade::iter().zip(chunks.into_iter()) {
-        let highlight = match app.ui_state.highlight {
-            None | Some(Highlight::Bar { .. }) => false,
-            Some(Highlight::Global {
+        let highlight = match ui_state.highlight {
+            Highlight::None | Highlight::Bar { .. } => false,
+            Highlight::Global {
                 upgrade: highlight_upgrade,
-            }) => upgrade == highlight_upgrade,
+            } => upgrade == highlight_upgrade,
         };
         let can_afford = app.can_afford_global(upgrade);
         let button = mk_button(

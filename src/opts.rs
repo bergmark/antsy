@@ -1,6 +1,6 @@
 use structopt::StructOpt;
 
-use crate::controls::UiStates;
+use crate::ui::UiStates;
 
 #[derive(StructOpt)]
 pub(crate) struct Opts {

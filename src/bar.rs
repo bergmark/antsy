@@ -16,13 +16,12 @@ pub(crate) struct Bar {
     pub(crate) exp: usize,
     pub(crate) level: usize,
     pub(crate) boost_until: Option<Instant>,
-    pub(crate) speed_base: Float,
     pub(crate) gain_exponent: usize,
     pub(crate) level_speed: Float,
 }
 
 impl Bar {
-    pub(crate) fn new(number: usize, speed_base: f64) -> Bar {
+    pub(crate) fn new(number: usize) -> Bar {
         Bar {
             progress: 0.0.into(),
             gathered: 0.0.into(),
@@ -33,7 +32,6 @@ impl Bar {
             exp: 0,
             level: 1,
             boost_until: None,
-            speed_base: speed_base.into(),
             /// Slow down the progress bars. When progress finishes,
             /// exp and gains need to be incremented accordingly.
             gain_exponent: 0,
@@ -98,8 +96,8 @@ impl Bar {
             * Float(10.0_f64.powf(self.gain_exponent as f64))
     }
 
-    fn speed(&self, global_speed_levels: usize) -> Float {
-        self.speed_base * self.speed_multiplier(global_speed_levels)
+    fn speed(&self, speed_base: Float, global_speed_levels: usize) -> Float {
+        speed_base * self.speed_multiplier(global_speed_levels)
     }
 
     pub(crate) fn speed_multiplier(&self, global_speed_levels: usize) -> Float {
@@ -116,6 +114,7 @@ impl Bar {
 
     pub(crate) fn inc(
         &mut self,
+        speed_base: Float,
         global_speed_levels: usize,
         global_exp_gain_levels: usize,
         global_exp_boost: usize,
@@ -126,7 +125,7 @@ impl Bar {
         } else {
             1.
         };
-        let new = self.progress + self.speed(global_speed_levels) * boost_mult;
+        let new = self.progress + self.speed(speed_base, global_speed_levels) * boost_mult;
         if new > 100. {
             self.inc_exp(
                 global_exp_gain_levels,

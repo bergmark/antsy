@@ -1,15 +1,15 @@
 use tui::{backend::Backend, Frame};
 
 use crate::app::App;
-use crate::controls::UiStates;
+use crate::ui::UiState;
 
 mod normal;
 mod prestige;
 mod util;
 
 pub(crate) fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
-    match app.ui_state.active {
-        UiStates::Normal => normal::render(f, app),
-        UiStates::Prestige => prestige::render(f, app),
+    match app.ui.state {
+        UiState::Normal(n) => normal::render(f, app, n),
+        UiState::Prestige(p) => prestige::render(f, app, p),
     }
 }
