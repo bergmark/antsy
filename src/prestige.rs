@@ -64,6 +64,14 @@ impl Prestige {
             .or_insert_with(|| panic!("Prestige upgrade sohuld have been init'd")) += 1;
         true
     }
+
+    pub(crate) fn level(&self, upgrade: PrestigeUpgrade) -> usize {
+        *self.upgrades.get(&upgrade).unwrap()
+    }
+
+    pub(crate) fn level_f(&self, upgrade: PrestigeUpgrade) -> f64 {
+        self.level(upgrade) as f64
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, EnumCount, Hash)]
@@ -71,7 +79,8 @@ pub(crate) enum PrestigeUpgrade {
     CompleteFaster,     // progress needed 0.95*n
     LevelUpFaster,      // exp req 0.95*n
     TransferExtraExp,   // If bar below has less exp, transfer 0.01*n
-    TransferExtraValue, // If bar below has less value, transfer 0.01*n
+    TransferExtraValue, // If bar below has less value, transfer 0.01*n (additative to normal transfer)
+
     UpgradeAnyButton, // level 1: upgrade bars, 2: speed, 3: x2, 4: x3, 5: x3, 6: global, 7: try upgrading everything one time, 8: upgrade everything multiple times
 
     // upgrade every 60s/n

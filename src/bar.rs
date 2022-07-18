@@ -1,9 +1,11 @@
-use crate::app::{exp_for_level, App, Completion};
-use crate::float::Float;
-use crate::upgrade::{GlobalUpgrade, Upgrade};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use strum::*;
+
+use crate::app::{App, Completion};
+use crate::float::Float;
+use crate::prestige::{Prestige, PrestigeUpgrade};
+use crate::upgrade::{GlobalUpgrade, Upgrade};
 
 #[derive(Clone)]
 pub(crate) struct Bar {
@@ -13,7 +15,7 @@ pub(crate) struct Bar {
     pub(crate) last_completion: Option<Completion>,
     pub(crate) upgrades: HashMap<Upgrade, usize>,
     pub(crate) number: usize,
-    pub(crate) exp: usize,
+    pub(crate) exp: Float,
     pub(crate) level: usize,
     pub(crate) boost_until: Option<Instant>,
     pub(crate) gain_exponent: usize,
@@ -29,7 +31,7 @@ impl Bar {
             last_completion: None,
             upgrades: Upgrade::iter().map(|u| (u, 0)).collect(),
             number,
-            exp: 0,
+            exp: 0.0.into(),
             level: 1,
             boost_until: None,
             /// Slow down the progress bars. When progress finishes,
@@ -44,12 +46,39 @@ impl Bar {
         global_exp_gain_levels: usize,
         global_exp_boost: usize,
         global_speed_levels: usize,
+        prestige: &Prestige,
+        now: Instant,
+        next_bar: Option<&mut Bar>,
+    ) {
+        let mut exp_gain = Float(
+            (1. + global_exp_gain_levels as f64)
+                * 10usize.pow(self.gain_exponent as u32) as f64
+                * 0.95_f64.powf(prestige.level_f(PrestigeUpgrade::LevelUpFaster)),
+        );
+
+        // Transfer exp
+        if let Some(next_bar) = next_bar {
+            if next_bar.level < self.level
+                || (next_bar.level == self.level && next_bar.exp < self.exp)
+            {
+                let remaining = exp_gain * 0.99_f64.powf(prestige.level_f(PrestigeUpgrade::TransferExtraExp));
+                let transfer = exp_gain - remaining;
+                exp_gain = remaining;
+                next_bar.exp += transfer;
+            }
+        }
+
+        self.exp += exp_gain;
+        self.check_level_up(global_exp_boost, global_speed_levels, now);
+    }
+
+    pub(crate) fn check_level_up(
+        &mut self,
+        global_exp_boost: usize,
+        global_speed_levels: usize,
         now: Instant,
     ) {
-        self.exp += (1 + global_exp_gain_levels) * 10usize.pow(self.gain_exponent as u32);
         let exp_for_next_level = self.exp_for_next_level();
-
-        // Level up
         if self.exp >= exp_for_next_level {
             self.exp -= exp_for_next_level;
             self.level += 1;
@@ -82,8 +111,12 @@ impl Bar {
         self.boost_until.map_or(false, |until| until > now)
     }
 
-    pub(crate) fn exp_for_next_level(&self) -> usize {
-        exp_for_level(self.level + 1)
+    fn exp_for_level(level: usize) -> Float {
+        Float(1.5).powf(level as f64)
+    }
+
+    pub(crate) fn exp_for_next_level(&self) -> Float {
+        Self::exp_for_level(self.level + 1)
     }
 
     pub(crate) fn gain(&self, app: &App) -> Float {
@@ -118,7 +151,9 @@ impl Bar {
         global_speed_levels: usize,
         global_exp_gain_levels: usize,
         global_exp_boost: usize,
+        prestige: &Prestige,
         now: Instant,
+        next_bar: Option<&mut Bar>,
     ) -> bool {
         let boost_mult = if self.boost_until.map_or(false, |until| now < until) {
             2.
@@ -126,12 +161,14 @@ impl Bar {
             1.
         };
         let new = self.progress + self.speed(speed_base, global_speed_levels) * boost_mult;
-        if new > 100. {
+        if new > 100. * 0.95_f64.powf(prestige.level_f(PrestigeUpgrade::CompleteFaster)) {
             self.inc_exp(
                 global_exp_gain_levels,
                 global_exp_boost,
                 global_speed_levels,
+                prestige,
                 now,
+                next_bar,
             );
             self.progress = Float(100.) - self.progress;
             true

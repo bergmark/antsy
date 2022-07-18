@@ -52,6 +52,7 @@ impl App {
             global_upgrades,
             last_save: None,
             opts,
+            last_automation: HashMap::new(),
             prestige: self
                 .prestige
                 .map_or(crate::prestige::Prestige::new(), Prestige::into_game),
@@ -98,7 +99,7 @@ struct Bar {
     transfer_ratio: f64,
     upgrades: HashMap<Upgrade, usize>,
     number: usize,
-    exp: usize,
+    exp: f64,
     level: usize,
     boost_remaining: Duration,
     gain_exponent: usize,
@@ -117,7 +118,7 @@ impl Bar {
                 .map(|(u, n)| (Upgrade::from_game(u), *n))
                 .collect(),
             number: b.number,
-            exp: b.exp,
+            exp: b.exp.into(),
             level: b.level,
             boost_remaining: b.boost_until.map_or(Duration::from_secs(0), |until| {
                 if until > now {
@@ -143,7 +144,7 @@ impl Bar {
                 .map(|(u, n)| (u.into_game(), n))
                 .collect(),
             number: self.number,
-            exp: self.exp,
+            exp: self.exp.into(),
             level: self.level,
             boost_until: Some(now + self.boost_remaining),
             gain_exponent: self.gain_exponent,

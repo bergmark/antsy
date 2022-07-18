@@ -7,7 +7,7 @@ use strum::*;
 use crate::bar::Bar;
 use crate::float::Float;
 use crate::opts::Opts;
-use crate::prestige::Prestige;
+use crate::prestige::{Prestige, PrestigeUpgrade};
 use crate::ui::{self, Ui, UiState};
 use crate::upgrade::{GlobalUpgrade, Upgrade};
 
@@ -22,6 +22,7 @@ pub(crate) struct App {
     pub(crate) opts: Opts,
     pub(crate) ui: Ui,
     pub(crate) prestige: Prestige,
+    pub(crate) last_automation: HashMap<GlobalUpgrade, Instant>,
 }
 
 struct UpgradeCost {
@@ -69,6 +70,7 @@ impl App {
             last_save: None,
             opts,
             prestige: Prestige::new(),
+            last_automation: HashMap::new(),
         }
     }
 
@@ -233,19 +235,29 @@ impl App {
         for i in 0..self.bars.len() {
             let read_bar = self.bars.get(i).unwrap().clone();
             let speed_base = self.speed_base();
-            let done = self.bars[i].inc(
+            let (bar, next_bars) = self.bars.make_contiguous().split_at_mut(i + 1);
+            let done = bar[bar.len() - 1].inc(
                 speed_base,
                 self.global_upgrades[&GlobalUpgrade::Speed],
                 self.global_upgrades[&GlobalUpgrade::ExpGain],
                 self.global_upgrades[&GlobalUpgrade::ExpBoost],
+                &self.prestige,
                 now,
+                next_bars.get_mut(0),
             );
             if done {
                 let gain = read_bar.gain(self);
                 self.bars[i].gathered += gain;
 
                 if i + 1 < self.bars.len() {
-                    let transferred = self.bars[i].gathered * self.bars[i].transfer_ratio;
+                    let mut transfer_ratio = self.bars[i].transfer_ratio;
+
+                    if self.bars[i + 1].gathered < self.bars[i].gathered {
+                        transfer_ratio += Float(0.01)
+                            * self.prestige.level_f(PrestigeUpgrade::TransferExtraValue);
+                    }
+
+                    let transferred = self.bars[i].gathered * transfer_ratio;
                     let gained = read_bar.gain(self) - transferred;
                     self.bars[i + 1].gathered += transferred;
                     self.bars[i].gathered -= transferred;
@@ -264,11 +276,36 @@ impl App {
             }
         }
 
+        self.auto_purchase(now);
+
         match self.last_save {
             None => self.save(),
             Some(last_save) => {
                 if self.tick - last_save > Duration::from_secs(30) {
                     self.save()
+                }
+            }
+        }
+    }
+
+    fn auto_purchase(&mut self, now: Instant) {
+        const PAIRS: [(PrestigeUpgrade, GlobalUpgrade); 5] = [
+            (PrestigeUpgrade::AutomateGlobalSpeed, GlobalUpgrade::Speed),
+            (PrestigeUpgrade::AutomateGlobalExpBoost, GlobalUpgrade::ExpBoost),
+            (PrestigeUpgrade::AutomateProgressBars, GlobalUpgrade::ProgressBars),
+            (PrestigeUpgrade::AutomateGlobalGain, GlobalUpgrade::Gain),
+            (PrestigeUpgrade::AutomateGlobalExpGain, GlobalUpgrade::ExpGain),
+        ];
+        for (prestige, global) in PAIRS {
+            let prestige_level = self.prestige.level(prestige);
+            if prestige_level != 0 {
+                let last_automation = *self.last_automation.entry(global).or_insert(now);
+                let automation_interval = (60_000f64 / prestige_level as f64) as u64;
+                let automation_interval = std::cmp::max(1, automation_interval);
+                let automation_interval = Duration::from_millis(automation_interval);
+                if now < last_automation + automation_interval {
+                    self.try_purchase_upgrade(ui::normal::Highlight::Global { upgrade: global });
+                    *self.last_automation.entry(global).or_insert(now) = now;
                 }
             }
         }
@@ -280,8 +317,4 @@ pub(crate) struct Completion {
     pub(crate) gain: Float,
     pub(crate) transferred: Option<Float>,
     pub(crate) tick: Instant,
-}
-
-pub(crate) fn exp_for_level(level: usize) -> usize {
-    1.5f64.powf((level - 1) as f64) as usize
 }

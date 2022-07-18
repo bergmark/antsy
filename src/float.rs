@@ -64,6 +64,7 @@ impl PartialEq<f64> for Float {
         self.0.eq(f)
     }
 }
+
 impl PartialEq<Float> for f64 {
     fn eq(&self, f: &Float) -> bool {
         self.eq(&f.0)
